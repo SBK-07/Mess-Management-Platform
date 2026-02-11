@@ -1,54 +1,18 @@
-import '../models/user.dart';
 import '../models/menu_item.dart';
 import '../models/replacement.dart';
 
 /// Dummy data for the mess management system prototype.
-/// 
-/// Contains hardcoded users, menu items, and replacement pool items.
+///
+/// Contains hardcoded menu items and replacement pool items.
 class DummyData {
   // Private constructor to prevent instantiation
   DummyData._();
-
-  // ============== USERS ==============
-  // 3 Students: Bala, Dhanush, Vishnu
-  // 1 Admin: admin
-  
-  static final List<User> users = [
-    User(
-      id: 'student_1',
-      name: 'Bala',
-      username: 'bala',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'student_2',
-      name: 'Dhanush',
-      username: 'dhanush',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'student_3',
-      name: 'Vishnu',
-      username: 'vishnu',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'admin_1',
-      name: 'Administrator',
-      username: 'admin',
-      password: 'admin',
-      isAdmin: true,
-    ),
-  ];
 
   // ============== TODAY'S MENU ==============
   // Breakfast: Idli, Dosa, Sambar
   // Lunch: Rice, Dal, Sabzi, Roti
   // Dinner: Chapati, Paneer, Rice
-  
+
   static final List<MenuItem> todaysMenu = [
     // Breakfast items
     MenuItem(
@@ -129,7 +93,7 @@ class DummyData {
 
   // ============== REPLACEMENT POOLS ==============
   // 2-3 items per pool as requested
-  
+
   static final List<ReplacementItem> replacementItems = [
     // Snack Pool (3 items)
     ReplacementItem(
@@ -204,17 +168,6 @@ class DummyData {
   /// Get replacement items by pool type
   static List<ReplacementItem> getReplacementsByPoolType(PoolType poolType) {
     return replacementItems.where((item) => item.poolType == poolType).toList();
-  }
-
-  /// Find user by username
-  static User? findUserByUsername(String username) {
-    try {
-      return users.firstWhere(
-        (user) => user.username.toLowerCase() == username.toLowerCase(),
-      );
-    } catch (e) {
-      return null;
-    }
   }
 
   /// Find menu item by id

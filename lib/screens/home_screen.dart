@@ -151,7 +151,7 @@ class _ProfileTab extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '@${user?.username ?? 'student'}',
+            '@${user?.email.split('@')[0] ?? 'student'}',
             style: AppConstants.bodyMedium,
           ),
           
@@ -161,7 +161,7 @@ class _ProfileTab extends StatelessWidget {
           _buildProfileOption(
             icon: Icons.history,
             title: 'My Complaints',
-            subtitle: '${appState.allComplaints.where((c) => c.studentId == user?.id).length} complaints submitted',
+            subtitle: '${appState.allComplaints.where((c) => c.studentId == user?.uid).length} complaints submitted',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
