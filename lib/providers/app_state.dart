@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/user.dart';
-import '../models/staff_request.dart';
-import '../models/menu_item.dart';
-import '../models/complaint.dart';
-import '../models/replacement.dart';
+import '../models/menu_item.dart' hide MealType;
+import '../models/complaint.dart' hide IssueType;
+import '../models/replacement.dart' hide PoolType;
+import '../models/pool_type.dart';
+import '../models/week_day.dart';
+import '../models/meal_type.dart';
+import '../models/issue_type.dart';
 import '../services/auth_service.dart';
 import '../services/menu_service.dart';
 import '../services/complaint_service.dart';
 import '../services/replacement_service.dart';
 
 /// Central app state managed with Provider.
-///
-/// Handles Firebase authentication (login, registration, approval)
-/// and retains all existing complaint/menu/replacement logic.
 class AppState extends ChangeNotifier {
   // Services
   final AuthService _authService = AuthService.instance;
@@ -30,29 +30,88 @@ class AppState extends ChangeNotifier {
   bool get isStaff => _currentUser?.isStaff ?? false;
   bool get isStudent => _currentUser?.isStudent ?? false;
 
-  // Saved admin credentials for re-authentication after creating accounts
+  fb.User? get currentFirebaseUser => _authService.currentFirebaseUser;
+
+  // Saved admin credentials for re-authentication after creating student accounts
   String? _adminEmail;
   String? _adminPassword;
 
   // ============== AUTH: LOGIN ==============
 
   /// Login with email and password via Firebase.
-  /// Returns the role string on success; throws on failure.
+  /// Returns the role string on success.
+  /// Rethrows exceptions for UI to handle ('new_user', 'pending', etc).
   Future<String> loginWithEmail(String email, String password) async {
-    final user = await _authService.login(email, password);
-    _currentUser = user;
+    try {
+      final user = await _authService.login(email, password);
+      _currentUser = user;
 
-    // Save admin credentials for re-auth after account creation
-    if (user.isAdmin) {
-      _adminEmail = email;
-      _adminPassword = password;
+      // Save admin credentials for re-auth
+      if (user.isAdmin) {
+        _adminEmail = email;
+        _adminPassword = password;
+      }
+      notifyListeners();
+      return user.role;
+    } catch (e) {
+      // Propagate for UI handling
+      rethrow;
     }
-
-    notifyListeners();
-    return user.role;
   }
 
-  /// Logout current user.
+  /// Login with Google.
+  Future<String> loginWithGoogle() async {
+    try {
+      final user = await _authService.signInWithGoogle();
+      _currentUser = user;
+      // Note: We can't save password for Google Auth, so admin re-auth
+      // for creating students might require manual re-login if they use Google.
+      // But we can prompt them.
+      notifyListeners();
+      return user.role;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Register details for a new staff user.
+  Future<void> registerStaffDetails({
+    required String name,
+    required String phone,
+    required String staffId,
+  }) async {
+    await _authService.registerStaffDetails(
+      name: name,
+      phone: phone,
+      staffId: staffId,
+    );
+    // After registration, the user is still "pending". Logic usually logs them out
+    // or shows pending screen. Since we are authenticated, we act as 'staff' (approved=false).
+    // We should refresh the user profile.
+    // For now, let UI handle the navigation to PendingScreen.
+  }
+
+  Future<void> signUpWithEmail(String email, String password) async {
+    await _authService.signUpWithEmail(email, password);
+    // This throws 'new_user' usually, caught by UI to redirect to registration form.
+  }
+
+  Future<void> signUpStaff({
+    required String name,
+    required String email,
+    required String password,
+    required String phone,
+    required String staffId,
+  }) async {
+    await _authService.signUpStaffWithEmail(
+      name: name,
+      email: email,
+      password: password,
+      phone: phone,
+      staffId: staffId,
+    );
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     _currentUser = null;
@@ -64,39 +123,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ============== AUTH: STAFF REGISTRATION ==============
-
-  /// Submit a staff registration request (no Auth account created).
-  Future<void> submitStaffRequest({
-    required String name,
-    required String email,
-    required String phone,
-    required String staffId,
-  }) async {
-    await _authService.submitStaffRequest(
-      name: name,
-      email: email,
-      phone: phone,
-      staffId: staffId,
-    );
-  }
-
   // ============== AUTH: ADMIN — STAFF APPROVAL ==============
 
-  /// Stream of pending staff requests for admin dashboard.
-  Stream<List<StaffRequest>> get pendingStaffRequests =>
-      _authService.pendingStaffRequests;
+  /// Stream of pending staff users for admin dashboard.
+  Stream<List<AppUser>> get pendingStaffUsers => _authService.pendingStaffUsers;
 
-  /// Approve a pending staff request.
-  /// Creates an Auth account + Firestore profile, then re-authenticates admin.
-  Future<void> approveStaffRequest(StaffRequest request, String tempPassword) async {
-    await _authService.approveStaffRequest(request, tempPassword);
-    await _reAuthenticateAdmin();
+  /// Approve a pending user.
+  Future<void> approveUser(String uid) async {
+    await _authService.approveUser(uid);
   }
 
-  /// Reject a pending staff request.
-  Future<void> rejectStaffRequest(String requestId) async {
-    await _authService.rejectStaffRequest(requestId);
+  /// Reject/Delete a pending user.
+  Future<void> rejectUser(String uid) async {
+    await _authService.rejectUser(uid);
   }
 
   // ============== AUTH: ADMIN — STUDENT CREATION ==============
@@ -123,7 +162,6 @@ class AppState extends ChangeNotifier {
     await _reAuthenticateAdmin();
   }
 
-  /// Re-authenticate admin after account creation switches the Auth session.
   Future<void> _reAuthenticateAdmin() async {
     if (_adminEmail != null && _adminPassword != null) {
       try {
@@ -131,8 +169,15 @@ class AppState extends ChangeNotifier {
           email: _adminEmail!,
           password: _adminPassword!,
         );
+        // Refresh current user
+        final user = _authService.currentFirebaseUser;
+        if (user != null) {
+             // We need to fetch app user again?
+             // loginWithEmail does it.
+             // We just need to restore session.
+             // But simpler: just sign in.
+        }
       } catch (_) {
-        // If re-auth fails, force logout so the admin can log in manually
         await logout();
         rethrow;
       }
@@ -141,9 +186,40 @@ class AppState extends ChangeNotifier {
 
   // ============== MENU STATE ==============
 
-  List<MenuItem> get todaysMenu => _menuService.getTodaysMenu();
+  List<MenuItem> _firestoreMenu = [];
+  bool _isMenuLoading = false;
+  bool get isMenuLoading => _isMenuLoading;
+
+  /// Loads the menu for the current day from Firestore
+  Future<void> loadDailyMenuFromFirestore() async {
+    _isMenuLoading = true;
+    notifyListeners();
+
+    try {
+      final now = DateTime.now();
+      final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final dayName = dayNames[now.weekday - 1];
+      
+      _firestoreMenu = await _menuService.getFirestoreMenuForDay(dayName);
+    } catch (e) {
+      debugPrint("Error loading Firestore menu: $e");
+      // Fallback to dummy if Firestore fails or is empty
+      _firestoreMenu = [];
+    } finally {
+      _isMenuLoading = false;
+      notifyListeners();
+    }
+  }
+
+  List<MenuItem> get todaysMenu {
+    if (_firestoreMenu.isNotEmpty) return _firestoreMenu;
+    return _menuService.getTodaysMenu();
+  }
 
   List<MenuItem> getMenuByMealType(MealType mealType) {
+    if (_firestoreMenu.isNotEmpty) {
+      return _firestoreMenu.where((item) => item.mealType == mealType).toList();
+    }
     return _menuService.getMenuByMealType(mealType);
   }
 

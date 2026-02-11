@@ -1,4 +1,5 @@
 import '../models/replacement.dart';
+import '../models/pool_type.dart';
 import '../utils/dummy_data.dart';
 
 /// Replacement service for managing food replacement pools.

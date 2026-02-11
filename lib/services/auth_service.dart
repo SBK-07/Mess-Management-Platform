@@ -1,12 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Add this import
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart';
-import '../models/staff_request.dart';
 
 /// Authentication service backed by Firebase Auth and Cloud Firestore.
 ///
-/// Handles login with role validation, staff registration requests,
-/// admin approval/rejection, and student account creation.
+/// Handles login with role validation, Google Sign-In, and user registration.
 class AuthService {
   AuthService._();
   static final AuthService _instance = AuthService._();
@@ -14,151 +13,181 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // ─────────── LOGIN / LOGOUT ───────────
+  // ─────────── LOGIN / SIGN UP ───────────
 
-  /// Sign in with email & password, then fetch + validate the Firestore profile.
+  /// Sign in with email & password.
   ///
-  /// Returns the [AppUser] on success.
-  /// Throws [FirebaseAuthException] or a generic [Exception] with a
-  /// human-readable message on failure.
+  /// Returns the [AppUser] if profile exists and represents a valid session.
+  /// Throws specific exceptions for UI handling:
+  /// - 'new_user': Authenticated but no Firestore profile (needs registration).
+  /// - 'pending': Profile exists but not approved (needs wait).
   Future<AppUser> login(String email, String password) async {
-    // 1. Firebase Auth sign-in
     final cred = await _auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+    return _fetchAndValidateUser(cred.user!);
+  }
 
-    final uid = cred.user!.uid;
+  /// Sign in with Google.
+  Future<AppUser> signInWithGoogle() async {
+    // Trigger the authentication flow
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw Exception('Sign in aborted by user');
+    }
 
-    // 2. Fetch Firestore profile
-    final doc = await _db.collection('users').doc(uid).get();
+    // Obtain the auth details from the request
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+    // Create a new credential
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    // Sign in to Firebase with the credential
+    final UserCredential cred = await _auth.signInWithCredential(credential);
+    return _fetchAndValidateUser(cred.user!);
+  }
+
+  /// Sign up with email & password (creates Auth account only).
+  Future<AppUser> signUpWithEmail(String email, String password) async {
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    // New user won't have a profile yet, so this will likely throw 'new_user'
+    return _fetchAndValidateUser(cred.user!);
+  }
+  
+  /// Sign up a staff member with full details.
+  Future<void> signUpStaffWithEmail({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+    required String staffId,
+  }) async {
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+    
+    final appUser = AppUser(
+      uid: cred.user!.uid,
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      role: 'staff',
+      approved: false, // Needs admin approval
+      active: true,
+      staffId: staffId.trim(),
+      createdAt: DateTime.now(),
+    );
+    
+    await _db.collection('users').doc(cred.user!.uid).set(appUser.toFirestore());
+  }
+
+  /// Helper to fetch Firestore profile and validate status.
+  Future<AppUser> _fetchAndValidateUser(User firebaseUser) async {
+    final doc = await _db.collection('users').doc(firebaseUser.uid).get();
+
     if (!doc.exists) {
-      await _auth.signOut();
-      throw Exception('No user profile found. Contact the administrator.');
+      // Throw special exception to trigger Registration Screen
+      throw Exception('new_user'); 
     }
 
     final appUser = AppUser.fromFirestore(doc);
 
-    // 3. Role-based approval checks
-    if (appUser.role == 'admin' && !appUser.approved) {
-      await _auth.signOut();
-      throw Exception('Admin account is not approved.');
-    }
-    if (appUser.role == 'staff' && !appUser.approved) {
-      await _auth.signOut();
-      throw Exception('Staff account is pending approval.');
-    }
-    if (!(appUser.active)) {
-      await _auth.signOut();
-      throw Exception('Account has been deactivated.');
+    if (appUser.role == 'admin') {
+      if (!appUser.approved) throw Exception('Admin account is not approved.');
+      return appUser;
     }
 
-    return appUser;
+    if (appUser.role == 'staff') {
+      if (!appUser.approved) {
+        // Throw special exception to trigger Pending Screen
+        throw Exception('pending');
+      }
+      if (!appUser.active) throw Exception('Account has been deactivated.');
+      return appUser;
+    }
+
+    if (appUser.role == 'student') {
+      return appUser;
+    }
+
+    throw Exception('Unknown role.');
   }
 
-  /// Sign out the current user.
+  /// Sign out.
   Future<void> logout() async {
+    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
-  // ─────────── STAFF REGISTRATION ───────────
+  // ─────────── REGISTRATION (FIRESTORE) ───────────
 
-  /// Submit a staff registration request (does NOT create an Auth account).
-  Future<void> submitStaffRequest({
+  /// Register details for a new staff user (creates Firestore doc).
+  Future<void> registerStaffDetails({
     required String name,
-    required String email,
     required String phone,
     required String staffId,
   }) async {
-    // Check for duplicate pending requests
-    final existing = await _db
-        .collection('staff_requests')
-        .where('email', isEqualTo: email.trim())
-        .where('status', isEqualTo: 'pending')
-        .get();
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated.');
 
-    if (existing.docs.isNotEmpty) {
-      throw Exception('A pending request with this email already exists.');
-    }
-
-    final request = StaffRequest(
-      id: '', // Firestore will auto-generate
+    final appUser = AppUser(
+      uid: user.uid,
       name: name.trim(),
-      email: email.trim(),
+      email: user.email ?? '',
       phone: phone.trim(),
+      role: 'staff',
+      approved: false,
+      active: true,
       staffId: staffId.trim(),
+      createdAt: DateTime.now(),
     );
 
-    await _db.collection('staff_requests').add(request.toFirestore());
+    await _db.collection('users').doc(user.uid).set(appUser.toFirestore());
   }
 
-  // ─────────── ADMIN: STAFF APPROVAL ───────────
+  // ─────────── ADMIN: PENDING USERS ───────────
 
-  /// Stream of pending staff requests for the admin panel.
-  Stream<List<StaffRequest>> get pendingStaffRequests {
+  /// Stream of pending staff users for admin approval.
+  Stream<List<AppUser>> get pendingStaffUsers {
     return _db
-        .collection('staff_requests')
-        .where('status', isEqualTo: 'pending')
+        .collection('users')
+        .where('role', isEqualTo: 'staff')
+        .where('approved', isEqualTo: false)
         .snapshots()
         .map((snap) {
-      final requests =
-          snap.docs.map((d) => StaffRequest.fromFirestore(d)).toList();
-      requests.sort((a, b) => b.requestedAt.compareTo(a.requestedAt));
-      return requests;
-    });
+          final users = snap.docs.map((d) => AppUser.fromFirestore(d)).toList();
+          // Sort by createdAt descending (newest first)
+          users.sort((a, b) {
+             final t1 = b.createdAt ?? DateTime(2000);
+             final t2 = a.createdAt ?? DateTime(2000);
+             return t1.compareTo(t2);
+          });
+          return users;
+        });
   }
 
-  /// Approve a staff request: create Auth account, Firestore profile, update request.
-  ///
-  /// Uses a temporary secondary Auth instance approach: saves the admin's
-  /// credentials, creates the new account, then re-signs in as admin.
-  Future<void> approveStaffRequest(StaffRequest request, String tempPassword) async {
-    // Save current admin credential info
-    final adminUser = _auth.currentUser;
-    if (adminUser == null) throw Exception('Admin not logged in.');
-
-    try {
-      // Create new Auth account for the staff
-      final newCred = await _auth.createUserWithEmailAndPassword(
-        email: request.email,
-        password: tempPassword,
-      );
-
-      final newUid = newCred.user!.uid;
-
-      // Write Firestore user profile
-      await _db.collection('users').doc(newUid).set({
-        'name': request.name,
-        'email': request.email,
-        'phone': request.phone,
-        'role': 'staff',
-        'approved': true,
-        'active': true,
-      });
-
-      // Update request status
-      await _db.collection('staff_requests').doc(request.id).update({
-        'status': 'approved',
-      });
-    } catch (e) {
-      rethrow;
-    }
-
-    // Re-authenticate admin (createUser signs in as new user)
-    // The caller (AppState) handles admin re-login.
+  /// Approve a pending user.
+  Future<void> approveUser(String uid) async {
+    await _db.collection('users').doc(uid).update({'approved': true});
   }
 
-  /// Reject a staff request.
-  Future<void> rejectStaffRequest(String requestId) async {
-    await _db.collection('staff_requests').doc(requestId).update({
-      'status': 'rejected',
-    });
+  /// Reject/Delete a pending user.
+  Future<void> rejectUser(String uid) async {
+    await _db.collection('users').doc(uid).delete();
   }
 
-  // ─────────── ADMIN: STUDENT CREATION ───────────
+  // ─────────── ADMIN: CREATE STUDENT ───────────
 
-  /// Create a student account: Auth account + Firestore profile.
   Future<void> createStudent({
     required String name,
     required String email,
@@ -168,16 +197,14 @@ class AuthService {
     required String messPlan,
     required String tempPassword,
   }) async {
-    // Create Auth account
+    // This creates an Auth account, which logs the current admin out momentarily
+    // AppState handles re-login using preserved credentials if needed.
     final cred = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
       password: tempPassword,
     );
-
-    final uid = cred.user!.uid;
-
-    // Write Firestore profile
-    await _db.collection('users').doc(uid).set({
+    
+    await _db.collection('users').doc(cred.user!.uid).set({
       'name': name.trim(),
       'email': email.trim(),
       'phone': phone.trim(),
@@ -187,13 +214,9 @@ class AuthService {
       'rollNo': rollNo.trim(),
       'roomNo': roomNo.trim(),
       'messPlan': messPlan.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
     });
-
-    // Caller handles admin re-login
   }
 
-  // ─────────── HELPERS ───────────
-
-  /// Current Firebase Auth user (null if signed out).
   User? get currentFirebaseUser => _auth.currentUser;
 }

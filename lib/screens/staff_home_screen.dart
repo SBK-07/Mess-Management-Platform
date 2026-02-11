@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import 'login_screen.dart';
+import 'overall_menu_screen.dart';
+import 'staff_today_menu_screen.dart';
 
 /// Staff home screen — simple landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
@@ -87,11 +89,22 @@ class StaffHomeScreen extends StatelessWidget {
               subtitle: 'Check the mess menu for today',
               color: AppConstants.primaryColor,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Menu management coming soon!'),
-                    duration: Duration(seconds: 1),
-                  ),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StaffTodayMenuScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildActionCard(
+              icon: Icons.calendar_month_outlined,
+              title: 'View Overall Menu',
+              subtitle: 'Full weekly schedule (Mon-Sun)',
+              color: Colors.orange,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OverallMenuScreen()),
                 );
               },
             ),

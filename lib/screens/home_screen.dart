@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
+import '../models/menu_item.dart';
 import 'menu_screen.dart';
 import 'feedback_screen.dart';
 import 'login_screen.dart';
+import '../models/meal_type.dart';
+import '../utils/mess_timings.dart';
 
 /// Home screen with bottom navigation for students.
 /// 
@@ -159,6 +162,20 @@ class _ProfileTab extends StatelessWidget {
           
           // Profile options
           _buildProfileOption(
+            icon: Icons.calendar_month_outlined,
+            title: 'Overall Menu',
+            subtitle: 'View full weekly mess menu',
+            onTap: () => Navigator.pushNamed(context, '/overall_menu'),
+          ),
+          
+          _buildProfileOption(
+            icon: Icons.access_time_filled,
+            title: 'Mess Timings',
+            subtitle: 'View breakfast, lunch, and dinner times',
+            onTap: () => _showTimingsDialog(context),
+          ),
+          
+          _buildProfileOption(
             icon: Icons.history,
             title: 'My Complaints',
             subtitle: '${appState.allComplaints.where((c) => c.studentId == user?.uid).length} complaints submitted',
@@ -225,6 +242,107 @@ class _ProfileTab extends StatelessWidget {
     );
   }
 
+  void _showTimingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.access_time_filled, color: AppConstants.primaryColor, size: 28),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Mess Timings',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildTimingTable(),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline, size: 18, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Note: Timings may vary slightly during special events or holidays.',
+                        style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimingTable() {
+    return Table(
+      border: TableBorder.all(
+        color: Colors.grey.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      columnWidths: const {
+        0: FlexColumnWidth(1.2),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(2),
+      },
+      children: [
+        // Header
+        TableRow(
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withValues(alpha: 0.05),
+          ),
+          children: const [
+             _PaddingText('Meal', bold: true, size: 14),
+             _PaddingText('Working Days', bold: true, size: 14),
+             _PaddingText('Saturday', bold: true, size: 14),
+             _PaddingText('Sun/Hol', bold: true, size: 14),
+          ],
+        ),
+        // Rows
+        for (var meal in MealType.values)
+          TableRow(
+            children: [
+              _PaddingText(meal.displayName, bold: true, size: 13, color: AppConstants.primaryColor),
+              _PaddingText(MessTimings.timings[meal]![DayType.workingDays]!, size: 13),
+              _PaddingText(MessTimings.timings[meal]![DayType.saturday]!, size: 13),
+              _PaddingText(MessTimings.timings[meal]![DayType.sundayHolidays]!, size: 13),
+            ],
+          ),
+      ],
+    );
+  }
   Widget _buildProfileOption({
     required IconData icon,
     required String title,
@@ -285,6 +403,29 @@ class _ProfileTab extends StatelessWidget {
             child: const Text('Logout'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PaddingText extends StatelessWidget {
+  final String text;
+  final bool bold;
+  final double size;
+  final Color? color;
+  const _PaddingText(this.text, {this.bold = false, this.size = 11, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+          fontSize: size,
+          color: color,
+        ),
       ),
     );
   }

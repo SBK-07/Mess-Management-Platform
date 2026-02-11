@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/menu_item.dart';
+import '../models/meal_type.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import '../widgets/menu_card.dart';
+import '../utils/mess_timings.dart';
 
 /// Menu display screen with tabs for different meal types.
 /// 
@@ -22,7 +24,12 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    
+    // Load fresh data from Firestore on entry
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AppState>(context, listen: false).loadDailyMenuFromFirestore();
+    });
   }
 
   @override
@@ -56,6 +63,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             tabs: [
               _buildTab(MealType.breakfast),
               _buildTab(MealType.lunch),
+              _buildTab(MealType.snacks),
               _buildTab(MealType.dinner),
             ],
           ),
@@ -68,6 +76,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             children: [
               _MealTypeList(mealType: MealType.breakfast),
               _MealTypeList(mealType: MealType.lunch),
+              _MealTypeList(mealType: MealType.snacks),
               _MealTypeList(mealType: MealType.dinner),
             ],
           ),
@@ -101,65 +110,97 @@ class _MealTypeList extends StatelessWidget {
     final appState = Provider.of<AppState>(context);
     final menuItems = appState.getMenuByMealType(mealType);
 
+    if (appState.isMenuLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (menuItems.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              '🍽️',
-              style: TextStyle(fontSize: 64),
-            ),
-            const SizedBox(height: AppConstants.paddingMedium),
-            Text(
-              'No ${mealType.displayName.toLowerCase()} items today',
-              style: AppConstants.bodyMedium,
-            ),
-          ],
+      return RefreshIndicator(
+        onRefresh: () => appState.loadDailyMenuFromFirestore(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 64),
+              Icon(Icons.restaurant_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
+              const SizedBox(height: 16),
+              const Text('No items listed for this meal today', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(
-        bottom: AppConstants.paddingLarge,
+    return RefreshIndicator(
+      onRefresh: () => appState.loadDailyMenuFromFirestore(),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: AppConstants.paddingLarge),
+        itemCount: menuItems.length + 1, // +1 for header
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildHeader(context);
+          
+          final item = menuItems[index - 1];
+          return MenuCard(
+            menuItem: item,
+            onTap: () => _showReportOption(context, item),
+          );
+        },
       ),
-      itemCount: menuItems.length + 1, // +1 for header
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildHeader();
-        }
-        
-        final item = menuItems[index - 1];
-        return MenuCard(
-          menuItem: item,
-          onTap: () => _showReportOption(context, item),
-        );
-      },
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final timing = MessTimings.getTiming(mealType, DateTime.now());
+    
     return Padding(
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Today's ${mealType.displayName}",
-            style: AppConstants.headingMedium,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Today's ${mealType.displayName}",
+                style: AppConstants.headingMedium,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 14, color: AppConstants.primaryColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      timing,
+                      style: AppConstants.bodySmall.copyWith(
+                        color: AppConstants.primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
-          Text(
-            'Tap on any item to report an issue',
-            style: AppConstants.bodyMedium,
-          ),
+          if (Provider.of<AppState>(context, listen: false).currentUser?.role != 'staff')
+            Text(
+              'Tap on any item to report an issue',
+              style: AppConstants.bodyMedium,
+            ),
         ],
       ),
     );
   }
 
   void _showReportOption(BuildContext context, MenuItem item) {
+    if (Provider.of<AppState>(context, listen: false).currentUser?.role == 'staff') return;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,

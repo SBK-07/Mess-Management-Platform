@@ -1,5 +1,6 @@
 import '../models/complaint.dart';
 import '../models/menu_item.dart';
+import '../models/issue_type.dart';
 
 /// Complaint service for managing dissatisfaction reports.
 /// 

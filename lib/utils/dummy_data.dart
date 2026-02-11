@@ -1,5 +1,7 @@
 import '../models/menu_item.dart';
+import '../models/meal_type.dart';
 import '../models/replacement.dart';
+import '../models/pool_type.dart';
 
 /// Dummy data for the mess management system prototype.
 ///
@@ -65,6 +67,22 @@ class DummyData {
       mealType: MealType.lunch,
       description: 'Fresh whole wheat flatbread',
       emoji: '🫓',
+    ),
+
+    // Snacks items
+    MenuItem(
+      id: 'menu_snacks_1',
+      name: 'Tea & Biscuits',
+      mealType: MealType.snacks,
+      description: 'Hot ginger tea with crispy biscuits',
+      emoji: '☕',
+    ),
+    MenuItem(
+      id: 'menu_snacks_2',
+      name: 'Samosa',
+      mealType: MealType.snacks,
+      description: 'Spicy potato samosa',
+      emoji: '🥟',
     ),
 
     // Dinner items

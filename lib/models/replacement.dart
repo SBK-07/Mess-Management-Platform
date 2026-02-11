@@ -1,9 +1,7 @@
+import 'pool_type.dart';
+
 /// Enum representing different replacement pool types.
-enum PoolType {
-  snack,
-  fruit,
-  protein,
-}
+
 
 /// Extension on PoolType to provide display names and colors
 extension PoolTypeExtension on PoolType {

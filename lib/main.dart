@@ -4,21 +4,28 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/app_state.dart';
 import 'screens/login_screen.dart';
-import 'utils/constants.dart';
+import 'screens/signup_screen.dart';
+import 'screens/register_screen.dart'; // Registration/Profile Completion
+import 'screens/pending_screen.dart';   // Pending Approval
+import 'screens/admin_dashboard.dart';
+import 'screens/staff_home_screen.dart';
+import 'screens/home_screen.dart';      // Student Home
+import 'screens/overall_menu_screen.dart';
+import 'utils/upload_menu.dart';
+import 'utils/constants.dart';          // AppTheme
 
-/// Smart Mess Management System
-///
-/// A Flutter app for managing mess operations with Firebase backend.
-/// Uses Firebase Auth for authentication and Cloud Firestore for data.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Temporary seed call as requested
+  await MenuUploader.uploadMenu();
+
   runApp(const MessManagementApp());
 }
 
-/// Root widget of the application.
 class MessManagementApp extends StatelessWidget {
   const MessManagementApp({super.key});
 
@@ -30,7 +37,18 @@ class MessManagementApp extends StatelessWidget {
         title: 'Smart Mess Management',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const LoginScreen(),
+        // Define named routes for navigation
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const LoginScreen(),
+          '/signup': (context) => const EmailSignUpScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/pending': (context) => const PendingScreen(),
+          '/admin': (context) => const AdminDashboard(),
+          '/staff': (context) => const StaffHomeScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/overall_menu': (context) => const OverallMenuScreen(),
+        },
       ),
     );
   }

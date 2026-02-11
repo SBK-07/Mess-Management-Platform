@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/complaint.dart';
-import '../models/menu_item.dart';
+import '../models/issue_type.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import '../widgets/menu_card.dart';
@@ -278,6 +278,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         return Colors.red;
       case IssueType.quantity:
         return Colors.blue;
+      case IssueType.other:
+        return Colors.blueGrey;
     }
   }
 

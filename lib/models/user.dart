@@ -13,6 +13,8 @@ class AppUser {
   final bool approved;
   final bool active;
   final String? messname;
+  final String? staffId; // Added staffId
+  final DateTime? createdAt; // Added for sorting pending requests
 
   // Student-specific fields
   final String? rollNo;
@@ -28,6 +30,8 @@ class AppUser {
     this.approved = false,
     this.active = true,
     this.messname,
+    this.staffId,
+    this.createdAt,
     this.rollNo,
     this.roomNo,
     this.messPlan,
@@ -49,6 +53,8 @@ class AppUser {
       approved: data['approved'] ?? false,
       active: data['active'] ?? true,
       messname: data['messname'],
+      staffId: data['staffId'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       rollNo: data['rollNo'],
       roomNo: data['roomNo'],
       messPlan: data['messPlan'],
@@ -64,14 +70,16 @@ class AppUser {
       'role': role,
       'approved': approved,
       'active': active,
+      if (staffId != null) 'staffId': staffId,
+      if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+      if (messname != null) 'messname': messname,
+      if (rollNo != null) 'rollNo': rollNo,
+      if (roomNo != null) 'roomNo': roomNo,
+      if (messPlan != null) 'messPlan': messPlan,
     };
-    if (messname != null) map['messname'] = messname;
-    if (rollNo != null) map['rollNo'] = rollNo;
-    if (roomNo != null) map['roomNo'] = roomNo;
-    if (messPlan != null) map['messPlan'] = messPlan;
     return map;
   }
 
   @override
-  String toString() => 'AppUser(uid: $uid, name: $name, role: $role)';
+  String toString() => 'AppUser(uid: $uid, name: $name, role: $role, approved: $approved)';
 }
