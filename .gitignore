@@ -52,3 +52,7 @@ env.example
 lib/config/firebase_config.dart
 **/env
 **/env.json
+
+# Firebase/Google Configuration
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
