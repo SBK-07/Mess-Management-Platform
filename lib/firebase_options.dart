@@ -50,7 +50,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCfnjSfs7tnQnUStNDvmL-mAFfswwBVaJ8',
+    apiKey: 'AIzaSyCGINVVDChaFEZoc2qtd6YlA5A_biGYSvs',
     appId: '1:489079520791:web:a78c42c9a1161a6c81e652',
     messagingSenderId: '489079520791',
     projectId: 'mess-management-platform',
@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     projectId: 'mess-management-platform',
     storageBucket: 'mess-management-platform.firebasestorage.app',
   );
+
 }

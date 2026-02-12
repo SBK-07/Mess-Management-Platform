@@ -12,7 +12,12 @@
           "package_name": "com.example.mess_management"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "489079520791-mpitono72uul0tl9m51pvenqk52oha6b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAkgiE1VBC_6kDvuoBeR7Eb1EC8jJanrK4"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "489079520791-mpitono72uul0tl9m51pvenqk52oha6b.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "489079520791-hm5uvfubdp7f16828q48is8tud689n47.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.messManagement"
+              }
+            }
+          ]
         }
       }
     }
