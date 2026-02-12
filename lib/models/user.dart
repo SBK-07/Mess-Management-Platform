@@ -1,43 +1,85 @@
-/// User model representing a student or admin in the mess management system.
-/// 
-/// This model holds user authentication and profile information.
-class User {
-  final String id;
-  final String name;
-  final String username;
-  final String password;
-  final bool isAdmin;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-  User({
-    required this.id,
+/// User model matching the Firestore `users` collection.
+///
+/// Supports three roles: admin, staff, student.
+/// Student-specific fields are optional.
+class AppUser {
+  final String uid;
+  final String name;
+  final String email;
+  final String phone;
+  final String role;
+  final bool approved;
+  final bool active;
+  final String? messname;
+  final String? staffId; // Added staffId
+  final DateTime? createdAt; // Added for sorting pending requests
+
+  // Student-specific fields
+  final String? rollNo;
+  final String? roomNo;
+  final String? messPlan;
+
+  AppUser({
+    required this.uid,
     required this.name,
-    required this.username,
-    required this.password,
-    this.isAdmin = false,
+    required this.email,
+    this.phone = '',
+    required this.role,
+    this.approved = false,
+    this.active = true,
+    this.messname,
+    this.staffId,
+    this.createdAt,
+    this.rollNo,
+    this.roomNo,
+    this.messPlan,
   });
 
-  /// Factory constructor to create a User from a Map (for future extensions)
-  factory User.fromMap(Map<String, dynamic> map) {
-    return User(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      username: map['username'] as String,
-      password: map['password'] as String,
-      isAdmin: map['isAdmin'] as bool? ?? false,
+  bool get isAdmin => role == 'admin' && approved;
+  bool get isStaff => role == 'staff' && approved;
+  bool get isStudent => role == 'student';
+
+  /// Create from Firestore document snapshot.
+  factory AppUser.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return AppUser(
+      uid: doc.id,
+      name: data['name'] ?? '',
+      email: data['email'] ?? '',
+      phone: data['phone'] ?? '',
+      role: data['role'] ?? 'student',
+      approved: data['approved'] ?? false,
+      active: data['active'] ?? true,
+      messname: data['messname'],
+      staffId: data['staffId'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      rollNo: data['rollNo'],
+      roomNo: data['roomNo'],
+      messPlan: data['messPlan'],
     );
   }
 
-  /// Convert User to Map
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
+  /// Convert to Firestore-compatible map.
+  Map<String, dynamic> toFirestore() {
+    final map = <String, dynamic>{
       'name': name,
-      'username': username,
-      'password': password,
-      'isAdmin': isAdmin,
+      'email': email,
+      'phone': phone,
+      'role': role,
+      'approved': approved,
+      'active': active,
+      if (staffId != null) 'staffId': staffId,
+      if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
+      if (messname != null) 'messname': messname,
+      if (rollNo != null) 'rollNo': rollNo,
+      if (roomNo != null) 'roomNo': roomNo,
+      if (messPlan != null) 'messPlan': messPlan,
     };
+    return map;
   }
 
   @override
-  String toString() => 'User(id: $id, name: $name, isAdmin: $isAdmin)';
+  String toString() => 'AppUser(uid: $uid, name: $name, role: $role, approved: $approved)';
 }

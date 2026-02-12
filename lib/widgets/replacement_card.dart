@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/replacement.dart';
+import '../models/pool_type.dart';
 import '../utils/constants.dart';
 
 /// A card widget displaying a replacement pool item.

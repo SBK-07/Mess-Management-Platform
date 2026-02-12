@@ -1,45 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'providers/app_state.dart';
 import 'screens/login_screen.dart';
-import 'utils/constants.dart';
+import 'screens/signup_screen.dart';
+import 'screens/register_screen.dart'; // Registration/Profile Completion
+import 'screens/pending_screen.dart';   // Pending Approval
+import 'screens/admin_dashboard.dart';
+import 'screens/staff_home_screen.dart';
+import 'screens/home_screen.dart';      // Student Home
+import 'screens/overall_menu_screen.dart';
+import 'screens/mess_cancellation_screen.dart';
+import 'utils/upload_menu.dart';
+import 'utils/constants.dart';          // AppTheme
 
-/// Smart Mess Management System
-/// 
-/// A Flutter prototype for managing mess operations with features:
-/// - Student login and menu viewing
-/// - Dissatisfaction reporting with issue types
-/// - Food replacement pool selection
-/// - Admin dashboard with statistics
-/// 
-/// This app uses Provider for state management and follows
-/// a modular architecture with separate screens, models, services, and widgets.
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Temporary seed call as requested
+  await MenuUploader.uploadMenu();
+
   runApp(const MessManagementApp());
 }
 
-/// Root widget of the application.
-/// 
-/// Sets up the Provider for state management and configures
-/// the MaterialApp with the food-themed color scheme.
 class MessManagementApp extends StatelessWidget {
   const MessManagementApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // Create and provide the global app state
       create: (_) => AppState(),
       child: MaterialApp(
-        // App configuration
         title: 'Smart Mess Management',
         debugShowCheckedModeBanner: false,
-        
-        // Apply the custom food-themed theme
         theme: AppTheme.lightTheme,
-        
-        // Start with the login screen
-        home: const LoginScreen(),
+        // Define named routes for navigation
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const LoginScreen(),
+          '/signup': (context) => const EmailSignUpScreen(),
+          '/register': (context) => const RegisterScreen(),
+          '/pending': (context) => const PendingScreen(),
+          '/admin': (context) => const AdminDashboard(),
+          '/staff': (context) => const StaffHomeScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/overall_menu': (context) => const OverallMenuScreen(),
+          '/mess_cancellation': (context) => const MessCancellationScreen(),
+        },
       ),
     );
   }

@@ -1,54 +1,20 @@
-import '../models/user.dart';
 import '../models/menu_item.dart';
+import '../models/meal_type.dart';
 import '../models/replacement.dart';
+import '../models/pool_type.dart';
 
 /// Dummy data for the mess management system prototype.
-/// 
-/// Contains hardcoded users, menu items, and replacement pool items.
+///
+/// Contains hardcoded menu items and replacement pool items.
 class DummyData {
   // Private constructor to prevent instantiation
   DummyData._();
-
-  // ============== USERS ==============
-  // 3 Students: Bala, Dhanush, Vishnu
-  // 1 Admin: admin
-  
-  static final List<User> users = [
-    User(
-      id: 'student_1',
-      name: 'Bala',
-      username: 'bala',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'student_2',
-      name: 'Dhanush',
-      username: 'dhanush',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'student_3',
-      name: 'Vishnu',
-      username: 'vishnu',
-      password: '1234',
-      isAdmin: false,
-    ),
-    User(
-      id: 'admin_1',
-      name: 'Administrator',
-      username: 'admin',
-      password: 'admin',
-      isAdmin: true,
-    ),
-  ];
 
   // ============== TODAY'S MENU ==============
   // Breakfast: Idli, Dosa, Sambar
   // Lunch: Rice, Dal, Sabzi, Roti
   // Dinner: Chapati, Paneer, Rice
-  
+
   static final List<MenuItem> todaysMenu = [
     // Breakfast items
     MenuItem(
@@ -103,6 +69,22 @@ class DummyData {
       emoji: '🫓',
     ),
 
+    // Snacks items
+    MenuItem(
+      id: 'menu_snacks_1',
+      name: 'Tea & Biscuits',
+      mealType: MealType.snacks,
+      description: 'Hot ginger tea with crispy biscuits',
+      emoji: '☕',
+    ),
+    MenuItem(
+      id: 'menu_snacks_2',
+      name: 'Samosa',
+      mealType: MealType.snacks,
+      description: 'Spicy potato samosa',
+      emoji: '🥟',
+    ),
+
     // Dinner items
     MenuItem(
       id: 'menu_8',
@@ -129,32 +111,35 @@ class DummyData {
 
   // ============== REPLACEMENT POOLS ==============
   // 2-3 items per pool as requested
-  
+
   static final List<ReplacementItem> replacementItems = [
-    // Snack Pool (3 items)
+    // Snack Pool
     ReplacementItem(
       id: 'snack_1',
       name: 'Biscuits',
       poolType: PoolType.snack,
       description: 'Crispy butter biscuits',
       emoji: '🍪',
+      targetMealType: MealType.snacks,
     ),
     ReplacementItem(
       id: 'snack_2',
-      name: 'Samosa',
+      name: 'Bread Toast',
       poolType: PoolType.snack,
-      description: 'Crispy potato filled pastry',
-      emoji: '🥟',
+      description: 'Crispy toasted bread',
+      emoji: '🍞',
+      targetMealType: MealType.breakfast,
     ),
     ReplacementItem(
       id: 'snack_3',
-      name: 'Puff',
+      name: 'Cornflakes',
       poolType: PoolType.snack,
-      description: 'Flaky vegetable puff',
-      emoji: '🥐',
+      description: 'Bowl of flakes with milk',
+      emoji: '🥣',
+      targetMealType: MealType.breakfast,
     ),
 
-    // Fruit Pool (3 items)
+    // Fruit Pool
     ReplacementItem(
       id: 'fruit_1',
       name: 'Apple',
@@ -171,13 +156,14 @@ class DummyData {
     ),
     ReplacementItem(
       id: 'fruit_3',
-      name: 'Orange',
+      name: 'Curd',
       poolType: PoolType.fruit,
-      description: 'Juicy citrus orange',
-      emoji: '🍊',
+      description: 'Fresh bowl of curd',
+      emoji: '🥛',
+      targetMealType: MealType.lunch,
     ),
 
-    // Protein Pool (2 items)
+    // Protein Pool
     ReplacementItem(
       id: 'protein_1',
       name: 'Boiled Egg',
@@ -187,10 +173,11 @@ class DummyData {
     ),
     ReplacementItem(
       id: 'protein_2',
-      name: 'Milk',
+      name: 'Paneer Cube',
       poolType: PoolType.protein,
-      description: 'Fresh cold milk (200ml)',
-      emoji: '🥛',
+      description: 'Fresh protein-rich paneer',
+      emoji: '🧀',
+      targetMealType: MealType.dinner,
     ),
   ];
 
@@ -201,20 +188,13 @@ class DummyData {
     return todaysMenu.where((item) => item.mealType == mealType).toList();
   }
 
-  /// Get replacement items by pool type
-  static List<ReplacementItem> getReplacementsByPoolType(PoolType poolType) {
-    return replacementItems.where((item) => item.poolType == poolType).toList();
-  }
-
-  /// Find user by username
-  static User? findUserByUsername(String username) {
-    try {
-      return users.firstWhere(
-        (user) => user.username.toLowerCase() == username.toLowerCase(),
-      );
-    } catch (e) {
-      return null;
-    }
+  /// Get replacement items by pool type, optionally filtered by meal type
+  static List<ReplacementItem> getReplacementsByPoolType(PoolType poolType, {MealType? mealType}) {
+    return replacementItems.where((item) {
+      final matchesPool = item.poolType == poolType;
+      final matchesMeal = mealType == null || item.targetMealType == null || item.targetMealType == mealType;
+      return matchesPool && matchesMeal;
+    }).toList();
   }
 
   /// Find menu item by id

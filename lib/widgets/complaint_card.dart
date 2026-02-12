@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/complaint.dart';
+import '../models/issue_type.dart';
 import '../utils/constants.dart';
 
 /// A card widget displaying a complaint summary.
@@ -109,8 +110,14 @@ class ComplaintCard extends StatelessWidget {
         return Colors.orange;
       case IssueType.hygiene:
         return Colors.red;
-      case IssueType.quantity:
+      case IssueType.portionSize:
         return Colors.blue;
+      case IssueType.temperature:
+        return Colors.orangeAccent;
+      case IssueType.quality:
+        return Colors.amber;
+      case IssueType.other:
+        return Colors.blueGrey;
     }
   }
 

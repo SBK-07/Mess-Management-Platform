@@ -1,16 +1,50 @@
-# mess_management
+# Smart Mess Management System
 
-A new Flutter project.
+A Flutter application for managing hostel mess operations including digital menu, complaint tracking, and staff management using Firebase.
 
-## Getting Started
+## Setup Requirements
 
-This project is a starting point for a Flutter application.
+Before running the project, you must configure Firebase:
 
-A few resources to get you started if this is your first Flutter project:
+1. **Install Firebase CLI** (if not installed):
+   ```bash
+   npm install -g firebase-tools
+   dart pub global activate flutterfire_cli
+   ```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+2. **Login to Firebase**:
+   ```bash
+   firebase login
+   ```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+3. **Configure Project**:
+   Run this command in the project root to connect to your Firebase project (`mess-management-platfrom`):
+   ```bash
+   flutterfire configure
+   ```
+   - Select your project (`mess-management-platfrom`)
+   - Select platforms (Android, iOS, Web, macOS)
+   - This will regenerate `lib/firebase_options.dart` with your real API keys.
+
+## Running the App
+
+After configuring Firebase:
+
+```bash
+flutter run
+```
+
+## Features
+
+- **Authentication**: Role-based login (Student, Staff, Admin)
+- **Admin Dashboard**:
+  - Approve staff requests
+  - Create student accounts
+  - View complaint statistics
+- **Student Features**:
+  - View daily menu
+  - Submit complaints (Taste, Hygiene, Quantity)
+  - Select replacement food items
+- **Staff Features**:
+  - View menu (placeholder)
+  - View complaints (placeholder)

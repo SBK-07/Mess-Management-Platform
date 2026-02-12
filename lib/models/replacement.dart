@@ -1,9 +1,8 @@
+import 'pool_type.dart';
+import 'meal_type.dart';
+
 /// Enum representing different replacement pool types.
-enum PoolType {
-  snack,
-  fruit,
-  protein,
-}
+
 
 /// Extension on PoolType to provide display names and colors
 extension PoolTypeExtension on PoolType {
@@ -50,6 +49,7 @@ class ReplacementItem {
   final PoolType poolType;
   final String description;
   final String emoji;
+  final MealType? targetMealType; // null means available for all meals
 
   ReplacementItem({
     required this.id,
@@ -57,6 +57,7 @@ class ReplacementItem {
     required this.poolType,
     this.description = '',
     this.emoji = '🍴',
+    this.targetMealType,
   });
 
   /// Factory constructor to create a ReplacementItem from a Map
@@ -67,6 +68,9 @@ class ReplacementItem {
       poolType: PoolType.values[map['poolType'] as int],
       description: map['description'] as String? ?? '',
       emoji: map['emoji'] as String? ?? '🍴',
+      targetMealType: map['targetMealType'] != null 
+          ? MealType.values[map['targetMealType'] as int] 
+          : null,
     );
   }
 
@@ -78,6 +82,7 @@ class ReplacementItem {
       'poolType': poolType.index,
       'description': description,
       'emoji': emoji,
+      'targetMealType': targetMealType?.index,
     };
   }
 

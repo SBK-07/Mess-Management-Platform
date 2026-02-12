@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
+import '../models/menu_item.dart';
+import '../models/notification.dart';
+import '../services/notification_service.dart';
 import 'menu_screen.dart';
 import 'feedback_screen.dart';
 import 'login_screen.dart';
+import '../models/meal_type.dart';
+import '../utils/mess_timings.dart';
+import 'my_complaints_screen.dart';
 
 /// Home screen with bottom navigation for students.
-/// 
+///
 /// Contains tabs for Menu, Report (feedback), and Profile.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,32 +44,114 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text('🍽️ ', style: TextStyle(fontSize: 24)),
             Text(
               'Hello, ${user?.name ?? 'Student'}!',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Show notifications (placeholder)
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No new notifications'),
-                  duration: Duration(seconds: 1),
+          StreamBuilder<List<NotificationModel>>(
+            stream: NotificationService().getUserNotifications(user?.uid ?? ''),
+            builder: (context, snapshot) {
+              final notifications = snapshot.data ?? [];
+              final unreadCount = notifications.where((n) => !n.isRead).length;
+
+              return PopupMenuButton<String>(
+                icon: Stack(
+                  children: [
+                    const Icon(Icons.notifications_outlined),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+                offset: const Offset(0, 50),
+                itemBuilder: (context) {
+                  if (notifications.isEmpty) {
+                    return [
+                      const PopupMenuItem(
+                        enabled: false,
+                        child: Text('No notifications'),
+                      ),
+                    ];
+                  }
+
+                  return notifications.map((notification) {
+                    return PopupMenuItem<String>(
+                      value: notification.id,
+                      enabled: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (!notification.isRead)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  margin: const EdgeInsets.only(right: 8),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  notification.title,
+                                  style: TextStyle(
+                                    fontWeight: notification.isRead
+                                        ? FontWeight.normal
+                                        : FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            notification.message,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Divider(),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                },
+                onSelected: (id) {
+                  NotificationService().markAsRead(id);
+                },
               );
             },
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -118,7 +206,7 @@ class _ProfileTab extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Profile avatar
           Container(
             width: 100,
@@ -126,10 +214,7 @@ class _ProfileTab extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppConstants.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: AppConstants.primaryColor,
-                width: 3,
-              ),
+              border: Border.all(color: AppConstants.primaryColor, width: 3),
             ),
             child: Center(
               child: Text(
@@ -143,35 +228,52 @@ class _ProfileTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          
+
           // User name
-          Text(
-            user?.name ?? 'Student',
-            style: AppConstants.headingLarge,
-          ),
+          Text(user?.name ?? 'Student', style: AppConstants.headingLarge),
           const SizedBox(height: 4),
           Text(
-            '@${user?.username ?? 'student'}',
+            '@${user?.email.split('@')[0] ?? 'student'}',
             style: AppConstants.bodyMedium,
           ),
-          
+
           const SizedBox(height: AppConstants.paddingXLarge),
-          
+
           // Profile options
+          _buildProfileOption(
+            icon: Icons.calendar_month_outlined,
+            title: 'Overall Menu',
+            subtitle: 'View full weekly mess menu',
+            onTap: () => Navigator.pushNamed(context, '/overall_menu'),
+          ),
+
+          _buildProfileOption(
+            icon: Icons.access_time_filled,
+            title: 'Mess Timings',
+            subtitle: 'View breakfast, lunch, and dinner times',
+            onTap: () => _showTimingsDialog(context),
+          ),
+          
+          _buildProfileOption(
+            icon: Icons.cancel_schedule_send_outlined,
+            title: 'Mess Cancellation',
+            subtitle: 'Pre-inform absence to reduce waste',
+            onTap: () => Navigator.pushNamed(context, '/mess_cancellation'),
+          ),
+
           _buildProfileOption(
             icon: Icons.history,
             title: 'My Complaints',
-            subtitle: '${appState.allComplaints.where((c) => c.studentId == user?.id).length} complaints submitted',
+            subtitle:
+                '${appState.allComplaints.where((c) => c.studentId == user?.uid).length} complaints submitted',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Complaint history feature coming soon!'),
-                  duration: Duration(seconds: 1),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyComplaintsScreen()),
               );
             },
           ),
-          
+
           _buildProfileOption(
             icon: Icons.settings_outlined,
             title: 'Settings',
@@ -185,7 +287,7 @@ class _ProfileTab extends StatelessWidget {
               );
             },
           ),
-          
+
           _buildProfileOption(
             icon: Icons.help_outline,
             title: 'Help & Support',
@@ -199,9 +301,9 @@ class _ProfileTab extends StatelessWidget {
               );
             },
           ),
-          
+
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Logout button
           SizedBox(
             width: double.infinity,
@@ -222,6 +324,126 @@ class _ProfileTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showTimingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.access_time_filled,
+                      color: AppConstants.primaryColor,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Text(
+                    'Mess Timings',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildTimingTable(),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline, size: 18, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Note: Timings may vary slightly during special events or holidays.',
+                        style: TextStyle(fontSize: 12, color: Colors.blueGrey),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimingTable() {
+    return Table(
+      border: TableBorder.all(
+        color: Colors.grey.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      columnWidths: const {
+        0: FlexColumnWidth(1.2),
+        1: FlexColumnWidth(2),
+        2: FlexColumnWidth(2),
+        3: FlexColumnWidth(2),
+      },
+      children: [
+        // Header
+        TableRow(
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withValues(alpha: 0.05),
+          ),
+          children: const [
+            _PaddingText('Meal', bold: true, size: 14),
+            _PaddingText('Working Days', bold: true, size: 14),
+            _PaddingText('Saturday', bold: true, size: 14),
+            _PaddingText('Sun/Hol', bold: true, size: 14),
+          ],
+        ),
+        // Rows
+        for (var meal in MealType.values)
+          TableRow(
+            children: [
+              _PaddingText(
+                meal.displayName,
+                bold: true,
+                size: 13,
+                color: AppConstants.primaryColor,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.workingDays]!,
+                size: 13,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.saturday]!,
+                size: 13,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.sundayHolidays]!,
+                size: 13,
+              ),
+            ],
+          ),
+      ],
     );
   }
 
@@ -246,10 +468,7 @@ class _ProfileTab extends StatelessWidget {
             color: AppConstants.primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
           ),
-          child: Icon(
-            icon,
-            color: AppConstants.primaryColor,
-          ),
+          child: Icon(icon, color: AppConstants.primaryColor),
         ),
         title: Text(title, style: AppConstants.bodyLarge),
         subtitle: Text(subtitle, style: AppConstants.bodySmall),
@@ -285,6 +504,34 @@ class _ProfileTab extends StatelessWidget {
             child: const Text('Logout'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PaddingText extends StatelessWidget {
+  final String text;
+  final bool bold;
+  final double size;
+  final Color? color;
+  const _PaddingText(
+    this.text, {
+    this.bold = false,
+    this.size = 11,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+          fontSize: size,
+          color: color,
+        ),
       ),
     );
   }

@@ -1,4 +1,6 @@
 import '../models/replacement.dart';
+import '../models/pool_type.dart';
+import '../models/meal_type.dart';
 import '../utils/dummy_data.dart';
 
 /// Replacement service for managing food replacement pools.
@@ -18,9 +20,9 @@ class ReplacementService {
     return DummyData.replacementItems;
   }
 
-  /// Get replacement items by pool type.
-  List<ReplacementItem> getReplacementsByPoolType(PoolType poolType) {
-    return DummyData.getReplacementsByPoolType(poolType);
+  /// Get replacement items by pool type, optionally filtered by meal type.
+  List<ReplacementItem> getReplacementsByPoolType(PoolType poolType, {MealType? mealType}) {
+    return DummyData.getReplacementsByPoolType(poolType, mealType: mealType);
   }
 
   /// Get a specific replacement item by ID.

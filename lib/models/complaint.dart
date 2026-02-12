@@ -1,11 +1,7 @@
 import 'menu_item.dart';
+import 'issue_type.dart';
 
-/// Enum representing different types of issues that can be reported.
-enum IssueType {
-  taste,
-  hygiene,
-  quantity,
-}
+
 
 /// Extension on IssueType to provide display names and icons
 extension IssueTypeExtension on IssueType {
@@ -15,8 +11,14 @@ extension IssueTypeExtension on IssueType {
         return 'Taste Issue';
       case IssueType.hygiene:
         return 'Hygiene Issue';
-      case IssueType.quantity:
-        return 'Quantity Issue';
+      case IssueType.temperature:
+        return 'Temperature Issue';
+      case IssueType.portionSize:
+        return 'Portion Size Issue';
+      case IssueType.quality:
+        return 'Quality Issue';
+      case IssueType.other:
+        return 'Other Issue';
     }
   }
 
@@ -26,8 +28,14 @@ extension IssueTypeExtension on IssueType {
         return '👅';
       case IssueType.hygiene:
         return '🧹';
-      case IssueType.quantity:
-        return '📏';
+      case IssueType.temperature:
+        return '🌡️';
+      case IssueType.portionSize:
+        return '⚖️';
+      case IssueType.quality:
+        return '🌟';
+      case IssueType.other:
+        return '📝';
     }
   }
 
@@ -37,8 +45,14 @@ extension IssueTypeExtension on IssueType {
         return 'The food doesn\'t taste good';
       case IssueType.hygiene:
         return 'Hygiene standards not met';
-      case IssueType.quantity:
+      case IssueType.temperature:
+        return 'Food was served at an incorrect temperature';
+      case IssueType.portionSize:
         return 'Serving size was insufficient';
+      case IssueType.quality:
+        return 'Overall quality was below expectations';
+      case IssueType.other:
+        return 'Other feedback or issue';
     }
   }
 }

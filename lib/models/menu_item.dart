@@ -1,9 +1,7 @@
+import 'meal_type.dart';
+
 /// Enum representing different meal types in a day.
-enum MealType {
-  breakfast,
-  lunch,
-  dinner,
-}
+
 
 /// Extension on MealType to provide display names
 extension MealTypeExtension on MealType {
@@ -13,6 +11,8 @@ extension MealTypeExtension on MealType {
         return 'Breakfast';
       case MealType.lunch:
         return 'Lunch';
+      case MealType.snacks:
+        return 'Snacks';
       case MealType.dinner:
         return 'Dinner';
     }
@@ -25,6 +25,8 @@ extension MealTypeExtension on MealType {
         return '🌅';
       case MealType.lunch:
         return '☀️';
+      case MealType.snacks:
+        return '☕';
       case MealType.dinner:
         return '🌙';
     }
