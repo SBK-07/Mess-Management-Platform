@@ -4,7 +4,7 @@ import '../utils/dummy_data.dart';
 import '../repositories/menu_repository.dart';
 
 /// Menu service for retrieving menu data.
-/// 
+///
 /// Provides access to today's menu items filtered by meal type.
 class MenuService {
   // Private constructor for singleton pattern
@@ -18,7 +18,7 @@ class MenuService {
   }
 
   /// Get menu items filtered by meal type.
-  /// 
+  ///
   /// [mealType] - The type of meal (breakfast, lunch, dinner)
   List<MenuItem> getMenuByMealType(MealType mealType) {
     return DummyData.getMenuByMealType(mealType);
@@ -49,46 +49,54 @@ class MenuService {
     if (breakfastData != null) {
       final List menu = breakfastData['menu'] ?? [];
       for (var name in menu) {
-        items.add(MenuItem(
-          id: 'fs_bf_${dayName}_$name',
-          name: name,
-          mealType: MealType.breakfast,
-          description: breakfastData['drink'] ?? '',
-        ));
+        items.add(
+          MenuItem(
+            id: 'fs_bf_${dayName}_$name',
+            name: name,
+            mealType: MealType.breakfast,
+            description: breakfastData['drink'] ?? '',
+          ),
+        );
       }
     }
 
     if (lunchData != null) {
       final List menu = lunchData['items'] ?? [];
       for (var name in menu) {
-        items.add(MenuItem(
-          id: 'fs_lh_${dayName}_$name',
-          name: name,
-          mealType: MealType.lunch,
-        ));
+        items.add(
+          MenuItem(
+            id: 'fs_lh_${dayName}_$name',
+            name: name,
+            mealType: MealType.lunch,
+          ),
+        );
       }
     }
 
     if (snacksData != null) {
       final String snack = snacksData['snack'] ?? '';
       if (snack.isNotEmpty) {
-        items.add(MenuItem(
-          id: 'fs_sn_${dayName}_$snack',
-          name: snack,
-          mealType: MealType.snacks,
-          description: snacksData['drink'] ?? '',
-        ));
+        items.add(
+          MenuItem(
+            id: 'fs_sn_${dayName}_$snack',
+            name: snack,
+            mealType: MealType.snacks,
+            description: snacksData['drink'] ?? '',
+          ),
+        );
       }
     }
 
     if (dinnerData != null) {
       final List menu = dinnerData['items'] ?? [];
       for (var name in menu) {
-        items.add(MenuItem(
-          id: 'fs_dn_${dayName}_$name',
-          name: name,
-          mealType: MealType.dinner,
-        ));
+        items.add(
+          MenuItem(
+            id: 'fs_dn_${dayName}_$name',
+            name: name,
+            mealType: MealType.dinner,
+          ),
+        );
       }
     }
 
@@ -103,5 +111,16 @@ class MenuService {
       MealType.snacks: getMenuByMealType(MealType.snacks).length,
       MealType.dinner: getMenuByMealType(MealType.dinner).length,
     };
+  }
+
+  /// Update a menu item for a specific day by replacing [oldName] with [newName].
+  Future<void> updateMenuItemForDay({
+    required MealType mealType,
+    required String dayName,
+    required String oldName,
+    required String newName,
+  }) async {
+    final repo = MenuRepository.instance;
+    await repo.replaceMenuItem(mealType.name, dayName, oldName, newName);
   }
 }

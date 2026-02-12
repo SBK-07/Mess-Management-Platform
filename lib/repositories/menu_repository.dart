@@ -12,6 +12,48 @@ class MenuRepository {
     return doc.data() ?? {};
   }
 
+  /// Replace an item in the menu for a specific day. This reads the document,
+  /// replaces occurrences of [oldName] with [newName] for the day's menu
+  /// and writes the updated document back.
+  Future<void> replaceMenuItem(
+    String mealType,
+    String dayName,
+    String oldName,
+    String newName,
+  ) async {
+    final docRef = _db.collection('mess_menu').doc(mealType);
+    final snapshot = await docRef.get();
+    final data = snapshot.data() ?? {};
+
+    if (!data.containsKey(dayName)) {
+      throw Exception('Day not found in menu');
+    }
+
+    final dayData = Map<String, dynamic>.from(data[dayName]);
+
+    // breakfast uses 'menu' list, lunch/dinner use 'items', snacks use 'snack' string
+    if (dayData.containsKey('menu') && dayData['menu'] is List) {
+      final list = List<String>.from(dayData['menu']);
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] == oldName) list[i] = newName;
+      }
+      dayData['menu'] = list;
+    } else if (dayData.containsKey('items') && dayData['items'] is List) {
+      final list = List<String>.from(dayData['items']);
+      for (var i = 0; i < list.length; i++) {
+        if (list[i] == oldName) list[i] = newName;
+      }
+      dayData['items'] = list;
+    } else if (dayData.containsKey('snack')) {
+      final snack = dayData['snack'] as String? ?? '';
+      if (snack == oldName) dayData['snack'] = newName;
+    }
+
+    // Write back
+    data[dayName] = dayData;
+    await docRef.set(data);
+  }
+
   /// One-time setup to seed the menu data as requested
   Future<void> seedInitialMenu() async {
     final batch = _db.batch();
@@ -22,49 +64,133 @@ class MenuRepository {
       'Monday': {
         'menu': ["Pongal", "Sambar", "Coconut Chutney", "methu vadai (1)"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Tuesday': {
         'menu': ["Idly", "Sambar", "Kara Chutney", "masal vadai (1)"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Wednesday': {
         'menu': ["Poori", "Alu Masala"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Thursday': {
-        'menu': ["Varagu Pongal", "Sambar", "Coconut Chutney", "methu vadai (1)"],
+        'menu': [
+          "Varagu Pongal",
+          "Sambar",
+          "Coconut Chutney",
+          "methu vadai (1)",
+        ],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Friday': {
         'menu': ["Kal Dosai", "Coconut Chutney", "Sambar"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Saturday': {
         'menu': ["Poori", "Channa Masala"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
       'Sunday': {
         'menu': ["Masala Dosai", "Sambar", "Coconut Chutney"],
         'option': "Bread,Jam",
-        'drink': "Coffee / Milk"
+        'drink': "Coffee / Milk",
       },
     });
 
     // Lunch
     batch.set(menuRef.doc('lunch'), {
-      'Monday': {'items': ["Rice", "Sambar", "Rasam", "Poriyal", "Kootu", "Butter Milk", "Pappad", "Pickle"]},
-      'Tuesday': {'items': ["Rice", "Vathakulambu / Karakulambu", "Rasam", "Poriyal", "Kootu", "Curd (1 Cup)", "Pappad", "Pickle"]},
-      'Wednesday': {'items': ["Variety Rice (Tamarind / Tomato / Puthina/Lemon)", "Rice", "Rasam", "Potato Poriyal", "Gongura Thokku", "Curd (1Cup)", "Fryums", "Pickle"]},
-      'Thursday': {'items': ["Rice", "More Kulambu", "Rasam", "Poriyal", "Kootu", "Buttermilk", "Fryums", "Pickle"]},
-      'Friday': {'items': ["Rice", "Dhal", "Ghee (1 Spoon)", "Rasam", "Potato kara Curry", "Sweet Payasam", "Buttermilk", "Pappad", "Pickle"]},
-      'Saturday': {'items': ["Rice", "Sambar", "Rasam", "Poriyal", "Kootu", "Curd (1Cup)", "Fryums", "Pickle"]},
-      'Sunday': {'items': ["Biriyani", "NV : Chicken 65 / Veg: Gobi Manjurian + Ice cream", "Onion Raitha", "Bread Halwa", "Brinjal Gravy", "Rice", "Rasam", "Buttermilk", "Pickle"]},
+      'Monday': {
+        'items': [
+          "Rice",
+          "Sambar",
+          "Rasam",
+          "Poriyal",
+          "Kootu",
+          "Butter Milk",
+          "Pappad",
+          "Pickle",
+        ],
+      },
+      'Tuesday': {
+        'items': [
+          "Rice",
+          "Vathakulambu / Karakulambu",
+          "Rasam",
+          "Poriyal",
+          "Kootu",
+          "Curd (1 Cup)",
+          "Pappad",
+          "Pickle",
+        ],
+      },
+      'Wednesday': {
+        'items': [
+          "Variety Rice (Tamarind / Tomato / Puthina/Lemon)",
+          "Rice",
+          "Rasam",
+          "Potato Poriyal",
+          "Gongura Thokku",
+          "Curd (1Cup)",
+          "Fryums",
+          "Pickle",
+        ],
+      },
+      'Thursday': {
+        'items': [
+          "Rice",
+          "More Kulambu",
+          "Rasam",
+          "Poriyal",
+          "Kootu",
+          "Buttermilk",
+          "Fryums",
+          "Pickle",
+        ],
+      },
+      'Friday': {
+        'items': [
+          "Rice",
+          "Dhal",
+          "Ghee (1 Spoon)",
+          "Rasam",
+          "Potato kara Curry",
+          "Sweet Payasam",
+          "Buttermilk",
+          "Pappad",
+          "Pickle",
+        ],
+      },
+      'Saturday': {
+        'items': [
+          "Rice",
+          "Sambar",
+          "Rasam",
+          "Poriyal",
+          "Kootu",
+          "Curd (1Cup)",
+          "Fryums",
+          "Pickle",
+        ],
+      },
+      'Sunday': {
+        'items': [
+          "Biriyani",
+          "NV : Chicken 65 / Veg: Gobi Manjurian + Ice cream",
+          "Onion Raitha",
+          "Bread Halwa",
+          "Brinjal Gravy",
+          "Rice",
+          "Rasam",
+          "Buttermilk",
+          "Pickle",
+        ],
+      },
     });
 
     // Snacks
@@ -80,13 +206,86 @@ class MenuRepository {
 
     // Dinner
     batch.set(menuRef.doc('dinner'), {
-      'Monday': {'items': ["Chappathi", "Green Peas Masala", "NV-Boiled Egg", "Veg: Pineapple Pudding", "Curd Rice", "Pickle", "Banana"]},
-      'Tuesday': {'items': ["Plain Dosai", "NV: Pepper Chicken Gravy", "Veg: Pepper Mushroom Gravy + Ice cream", "Plain Salna", "Curd Rice", "Pickle", "Banana"]},
-      'Wednesday': {'items': ["Noodles", "Tomato Sauce", "Rice", "Rasam", "Buttermilk", "Pickle", "Banana"]},
-      'Thursday': {'items': ["Chappathi", "Black Channa Kuruma", "NV: Chicken kuruma", "Veg: French Fries + Ice cream", "Rice", "Rasam", "Buttermilk", "Pickle", "Banana"]},
-      'Friday': {'items': ["Veg Biriyani", "Onion Raitha", "Kuruma", "NV: Boiled egg", "Veg: Pineapple Pudding", "Curd Rice", "Pickle", "Banana"]},
-      'Saturday': {'items': ["Idly", "Podi", "Gingelly oil", "Coconut Chutney", "Curd Rice", "Pickle", "Banana"]},
-      'Sunday': {'items': ["Idiyappam (4 No's)", "Veg Paya", "Rice", "Rasam", "Buttermilk", "Pickle", "Banana"]},
+      'Monday': {
+        'items': [
+          "Chappathi",
+          "Green Peas Masala",
+          "NV-Boiled Egg",
+          "Veg: Pineapple Pudding",
+          "Curd Rice",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Tuesday': {
+        'items': [
+          "Plain Dosai",
+          "NV: Pepper Chicken Gravy",
+          "Veg: Pepper Mushroom Gravy + Ice cream",
+          "Plain Salna",
+          "Curd Rice",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Wednesday': {
+        'items': [
+          "Noodles",
+          "Tomato Sauce",
+          "Rice",
+          "Rasam",
+          "Buttermilk",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Thursday': {
+        'items': [
+          "Chappathi",
+          "Black Channa Kuruma",
+          "NV: Chicken kuruma",
+          "Veg: French Fries + Ice cream",
+          "Rice",
+          "Rasam",
+          "Buttermilk",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Friday': {
+        'items': [
+          "Veg Biriyani",
+          "Onion Raitha",
+          "Kuruma",
+          "NV: Boiled egg",
+          "Veg: Pineapple Pudding",
+          "Curd Rice",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Saturday': {
+        'items': [
+          "Idly",
+          "Podi",
+          "Gingelly oil",
+          "Coconut Chutney",
+          "Curd Rice",
+          "Pickle",
+          "Banana",
+        ],
+      },
+      'Sunday': {
+        'items': [
+          "Idiyappam (4 No's)",
+          "Veg Paya",
+          "Rice",
+          "Rasam",
+          "Buttermilk",
+          "Pickle",
+          "Banana",
+        ],
+      },
     });
 
     await batch.commit();

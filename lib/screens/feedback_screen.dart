@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/complaint.dart';
 import '../models/issue_type.dart';
+import '../models/meal_type.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import '../widgets/menu_card.dart';
-import 'replacement_screen.dart';
+// replacement picker removed: students will only use the suggested replacement field
+import 'my_complaints_screen.dart';
 
 /// Feedback/Dissatisfaction reporting screen.
-/// 
+///
 /// Allows students to select a menu item and report an issue type.
-/// After submission, redirects to replacement pool selection.
+/// After submission, records the report (and any suggested replacement) and
+/// navigates to the user's My Complaints screen.
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
 
@@ -20,6 +23,15 @@ class FeedbackScreen extends StatefulWidget {
 
 class _FeedbackScreenState extends State<FeedbackScreen> {
   IssueType? _localSelectedIssueType;
+  MealType? _selectedMealType;
+  final TextEditingController _suggestedReplacementCtrl =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _suggestedReplacementCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +58,30 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           // Step 1: Select menu item
           _buildSectionHeader('1. Select Menu Item', Icons.restaurant_menu),
           const SizedBox(height: AppConstants.paddingSmall),
-          
+
+          // Meal type selector
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.paddingMedium,
+            ),
+            child: DropdownButtonFormField<MealType?>(
+              value: _selectedMealType,
+              decoration: const InputDecoration(
+                labelText: 'Meal Section',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('All Meals')),
+                ...MealType.values.map(
+                  (m) => DropdownMenuItem(value: m, child: Text(m.displayName)),
+                ),
+              ],
+              onChanged: (val) => setState(() => _selectedMealType = val),
+            ),
+          ),
+          const SizedBox(height: AppConstants.paddingSmall),
+          const SizedBox(height: AppConstants.paddingSmall),
+
           if (selectedItem != null)
             MenuCard(
               menuItem: selectedItem,
@@ -61,8 +96,40 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           // Step 2: Select issue type
           _buildSectionHeader('2. What\'s the Issue?', Icons.report_problem),
           const SizedBox(height: AppConstants.paddingSmall),
-          
-          ...IssueType.values.map((issueType) => _buildIssueTypeCard(issueType)),
+
+          ...IssueType.values.map(
+            (issueType) => _buildIssueTypeCard(issueType),
+          ),
+
+          const SizedBox(height: AppConstants.paddingLarge),
+
+          // Suggested replacement (optional)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.paddingMedium,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Suggested Replacement (optional)',
+                  style: AppConstants.headingSmall,
+                ),
+                const SizedBox(height: AppConstants.paddingSmall),
+                TextField(
+                  controller: _suggestedReplacementCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'E.g. Replace chilli rice with plain rice',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.borderRadiusSmall,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: AppConstants.paddingLarge),
 
@@ -71,7 +138,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: (selectedItem != null && _localSelectedIssueType != null)
+              onPressed:
+                  (selectedItem != null && _localSelectedIssueType != null)
                   ? () => _submitComplaint(context, appState)
                   : null,
               child: const Row(
@@ -79,34 +147,30 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 children: [
                   Icon(Icons.send),
                   SizedBox(width: 8),
-                  Text(
-                    'Submit & Choose Replacement',
-                    style: AppConstants.buttonText,
-                  ),
+                  Text('Submit Report', style: AppConstants.buttonText),
                 ],
               ),
             ),
           ),
-          
+
           const SizedBox(height: AppConstants.paddingMedium),
-          
+
           // Info text
           Container(
             padding: const EdgeInsets.all(AppConstants.paddingMedium),
             decoration: BoxDecoration(
               color: AppConstants.secondaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+              borderRadius: BorderRadius.circular(
+                AppConstants.borderRadiusMedium,
+              ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppConstants.secondaryColor,
-                ),
+                Icon(Icons.info_outline, color: AppConstants.secondaryColor),
                 const SizedBox(width: AppConstants.paddingSmall),
                 Expanded(
                   child: Text(
-                    'After submitting, you can choose a replacement from our food pools.',
+                    'Your report will be recorded. If you provided a suggested replacement it will be sent along with your report.',
                     style: AppConstants.bodySmall.copyWith(
                       color: AppConstants.secondaryColor,
                     ),
@@ -123,16 +187,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: AppConstants.primaryColor,
-          size: 20,
-        ),
+        Icon(icon, color: AppConstants.primaryColor, size: 20),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: AppConstants.headingSmall,
-        ),
+        Text(title, style: AppConstants.headingSmall),
       ],
     );
   }
@@ -178,7 +235,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Widget _buildIssueTypeCard(IssueType issueType) {
     final isSelected = _localSelectedIssueType == issueType;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -193,14 +250,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ),
         padding: const EdgeInsets.all(AppConstants.paddingMedium),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? AppConstants.primaryColor.withOpacity(0.1)
               : AppConstants.cardColor,
           borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
           border: Border.all(
-            color: isSelected 
-                ? AppConstants.primaryColor 
-                : Colors.transparent,
+            color: isSelected ? AppConstants.primaryColor : Colors.transparent,
             width: 2,
           ),
           boxShadow: AppConstants.cardShadow,
@@ -213,7 +268,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               height: 48,
               decoration: BoxDecoration(
                 color: _getIssueColor(issueType).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
+                borderRadius: BorderRadius.circular(
+                  AppConstants.borderRadiusSmall,
+                ),
               ),
               child: Center(
                 child: Text(
@@ -223,7 +280,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               ),
             ),
             const SizedBox(width: AppConstants.paddingMedium),
-            
+
             // Issue details
             Expanded(
               child: Column(
@@ -233,14 +290,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     issueType.displayName,
                     style: AppConstants.headingSmall.copyWith(fontSize: 16),
                   ),
-                  Text(
-                    issueType.description,
-                    style: AppConstants.bodySmall,
-                  ),
+                  Text(issueType.description, style: AppConstants.bodySmall),
                 ],
               ),
             ),
-            
+
             // Selection indicator
             if (isSelected)
               Container(
@@ -249,11 +303,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   color: AppConstants.primaryColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 16,
-                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 16),
               )
             else
               Container(
@@ -276,8 +326,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         return Colors.orange;
       case IssueType.hygiene:
         return Colors.red;
-      case IssueType.quantity:
+      case IssueType.temperature:
         return Colors.blue;
+      case IssueType.portionSize:
+        return Colors.purple;
+      case IssueType.quality:
+        return Colors.amber;
       case IssueType.other:
         return Colors.blueGrey;
     }
@@ -313,7 +367,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ),
                 ),
               ),
-              
+
               // Title
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -333,7 +387,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ],
                 ),
               ),
-              
+
               // Menu items list
               Expanded(
                 child: ListView.builder(
@@ -341,9 +395,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   padding: const EdgeInsets.only(
                     bottom: AppConstants.paddingLarge,
                   ),
-                  itemCount: appState.todaysMenu.length,
+                  itemCount:
+                      (_selectedMealType == null
+                              ? appState.todaysMenu
+                              : appState.getMenuByMealType(_selectedMealType!))
+                          .length,
                   itemBuilder: (context, index) {
-                    final item = appState.todaysMenu[index];
+                    final menuList = _selectedMealType == null
+                        ? appState.todaysMenu
+                        : appState.getMenuByMealType(_selectedMealType!);
+                    final item = menuList[index];
                     return MenuCard(
                       menuItem: item,
                       isSelected: appState.selectedMenuItem?.id == item.id,
@@ -362,26 +423,80 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 
-  void _submitComplaint(BuildContext context, AppState appState) {
+  Future<void> _submitComplaint(BuildContext context, AppState appState) async {
     if (_localSelectedIssueType == null) return;
 
-    // Set issue type and submit
+    final menuItem = appState.selectedMenuItem;
+    if (menuItem == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a menu item first.'),
+          backgroundColor: AppConstants.errorColor,
+        ),
+      );
+      return;
+    }
+
+    try {
+      await appState.submitFoodReport(
+        menuItemId: menuItem.id,
+        menuItemName: menuItem.name,
+        mealType: menuItem.mealType,
+        mealDate: DateTime.now(),
+        reason: _localSelectedIssueType!,
+        comments: _suggestedReplacementCtrl.text,
+      );
+    } catch (e) {
+      debugPrint('Food report save failed: $e');
+    }
+
+    // existing complaint flow for replacement selection
     appState.selectIssueType(_localSelectedIssueType!);
     final success = appState.submitComplaint();
 
     if (success) {
-      // Reset local state
+      final suggested = _suggestedReplacementCtrl.text.trim();
       setState(() {
         _localSelectedIssueType = null;
+        _suggestedReplacementCtrl.clear();
       });
 
-      // Navigate to replacement screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ReplacementScreen(),
-        ),
-      );
+      if (suggested.isNotEmpty) {
+        // set custom replacement and comments then confirm
+        appState.setCustomReplacementName(suggested);
+        appState.setReplacementComments('Requested replacement: $suggested');
+        final confirmed = appState.confirmReplacement();
+        if (confirmed) {
+          if (context.mounted)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Report submitted and replacement requested'),
+              ),
+            );
+        } else {
+          if (context.mounted)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to request replacement'),
+                backgroundColor: AppConstants.errorColor,
+              ),
+            );
+        }
+      } else {
+        if (context.mounted)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Report submitted')));
+      }
+
+      // Reset flow and navigate to My Complaints
+      appState.resetFeedbackFlow();
+      if (context.mounted)
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MyComplaintsScreen()),
+        );
+      return;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

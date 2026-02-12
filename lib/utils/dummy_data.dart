@@ -113,30 +113,33 @@ class DummyData {
   // 2-3 items per pool as requested
 
   static final List<ReplacementItem> replacementItems = [
-    // Snack Pool (3 items)
+    // Snack Pool
     ReplacementItem(
       id: 'snack_1',
       name: 'Biscuits',
       poolType: PoolType.snack,
       description: 'Crispy butter biscuits',
       emoji: '🍪',
+      targetMealType: MealType.snacks,
     ),
     ReplacementItem(
       id: 'snack_2',
-      name: 'Samosa',
+      name: 'Bread Toast',
       poolType: PoolType.snack,
-      description: 'Crispy potato filled pastry',
-      emoji: '🥟',
+      description: 'Crispy toasted bread',
+      emoji: '🍞',
+      targetMealType: MealType.breakfast,
     ),
     ReplacementItem(
       id: 'snack_3',
-      name: 'Puff',
+      name: 'Cornflakes',
       poolType: PoolType.snack,
-      description: 'Flaky vegetable puff',
-      emoji: '🥐',
+      description: 'Bowl of flakes with milk',
+      emoji: '🥣',
+      targetMealType: MealType.breakfast,
     ),
 
-    // Fruit Pool (3 items)
+    // Fruit Pool
     ReplacementItem(
       id: 'fruit_1',
       name: 'Apple',
@@ -153,13 +156,14 @@ class DummyData {
     ),
     ReplacementItem(
       id: 'fruit_3',
-      name: 'Orange',
+      name: 'Curd',
       poolType: PoolType.fruit,
-      description: 'Juicy citrus orange',
-      emoji: '🍊',
+      description: 'Fresh bowl of curd',
+      emoji: '🥛',
+      targetMealType: MealType.lunch,
     ),
 
-    // Protein Pool (2 items)
+    // Protein Pool
     ReplacementItem(
       id: 'protein_1',
       name: 'Boiled Egg',
@@ -169,10 +173,11 @@ class DummyData {
     ),
     ReplacementItem(
       id: 'protein_2',
-      name: 'Milk',
+      name: 'Paneer Cube',
       poolType: PoolType.protein,
-      description: 'Fresh cold milk (200ml)',
-      emoji: '🥛',
+      description: 'Fresh protein-rich paneer',
+      emoji: '🧀',
+      targetMealType: MealType.dinner,
     ),
   ];
 
@@ -183,9 +188,13 @@ class DummyData {
     return todaysMenu.where((item) => item.mealType == mealType).toList();
   }
 
-  /// Get replacement items by pool type
-  static List<ReplacementItem> getReplacementsByPoolType(PoolType poolType) {
-    return replacementItems.where((item) => item.poolType == poolType).toList();
+  /// Get replacement items by pool type, optionally filtered by meal type
+  static List<ReplacementItem> getReplacementsByPoolType(PoolType poolType, {MealType? mealType}) {
+    return replacementItems.where((item) {
+      final matchesPool = item.poolType == poolType;
+      final matchesMeal = mealType == null || item.targetMealType == null || item.targetMealType == mealType;
+      return matchesPool && matchesMeal;
+    }).toList();
   }
 
   /// Find menu item by id

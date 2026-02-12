@@ -4,6 +4,9 @@ import '../providers/app_state.dart';
 import '../models/user.dart';
 import '../widgets/stat_card.dart';
 import '../models/issue_type.dart';
+import '../models/food_report.dart';
+import '../models/meal_type.dart';
+import 'package:intl/intl.dart';
 
 /// Admin Dashboard Screen.
 /// Includes Overview, Staff Requests, and Student Creation.
@@ -21,7 +24,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -58,19 +61,19 @@ class _AdminDashboardState extends State<AdminDashboard>
             Tab(icon: Icon(Icons.dashboard_rounded), text: 'Overview'),
             Tab(icon: Icon(Icons.people_outline_rounded), text: 'Staff'),
             Tab(icon: Icon(Icons.school_rounded), text: 'Students'),
+            Tab(icon: Icon(Icons.feedback_outlined), text: 'Reports'),
           ],
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFFFDF6F0),
-        ),
+        decoration: const BoxDecoration(color: Color(0xFFFDF6F0)),
         child: TabBarView(
           controller: _tabController,
           children: [
             const _OverviewTab(),
             const _StaffRequestsTab(),
             const _AddStudentTab(),
+            const _FoodReportsTab(),
           ],
         ),
       ),
@@ -90,7 +93,7 @@ class _OverviewTab extends StatelessWidget {
     final complaintsByType = appState.complaintsByIssueType;
     final tasteIssues = complaintsByType[IssueType.taste] ?? 0;
     final hygieneIssues = complaintsByType[IssueType.hygiene] ?? 0;
-    final quantityIssues = complaintsByType[IssueType.quantity] ?? 0;
+    final portionSizeIssues = complaintsByType[IssueType.portionSize] ?? 0;
 
     // Replacement stats
     final totalReplacements = appState.totalReplacementsIssued;
@@ -133,17 +136,26 @@ class _OverviewTab extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildMiniStat(
-                    'Taste', '$tasteIssues', Colors.orangeAccent),
+                  'Taste',
+                  '$tasteIssues',
+                  Colors.orangeAccent,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildMiniStat(
-                    'Hygiene', '$hygieneIssues', Colors.green),
+                  'Hygiene',
+                  '$hygieneIssues',
+                  Colors.green,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildMiniStat(
-                    'Quantity', '$quantityIssues', Colors.purpleAccent),
+                  'Portion',
+                  '$portionSizeIssues',
+                  Colors.purpleAccent,
+                ),
               ),
             ],
           ),
@@ -178,13 +190,7 @@ class _OverviewTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
       ),
     );
@@ -203,9 +209,11 @@ class _StaffRequestsTab extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
-            child: Text('Error loading requests:\n${snapshot.error}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red)),
+            child: Text(
+              'Error loading requests:\n${snapshot.error}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
           );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -219,8 +227,11 @@ class _StaffRequestsTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline,
-                    size: 64, color: Colors.grey[300]),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 64,
+                  color: Colors.grey[300],
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No pending requests',
@@ -239,7 +250,8 @@ class _StaffRequestsTab extends StatelessWidget {
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -249,9 +261,13 @@ class _StaffRequestsTab extends StatelessWidget {
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: const Color(0xFFE07B39).withOpacity(0.1),
-                          child: const Icon(Icons.person_outline,
-                              color: Color(0xFFE07B39)),
+                          backgroundColor: const Color(
+                            0xFFE07B39,
+                          ).withOpacity(0.1),
+                          child: const Icon(
+                            Icons.person_outline,
+                            color: Color(0xFFE07B39),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -272,30 +288,33 @@ class _StaffRequestsTab extends StatelessWidget {
                                   color: Colors.grey[600],
                                 ),
                               ),
-                                  Text(
-                                    'Applied: ${user.createdAt.toString().split('.')[0]}',
-                                    style: TextStyle(
+                              Text(
+                                'Applied: ${user.createdAt.toString().split('.')[0]}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                              if (user.staffId != null)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'ID: ${user.staffId}',
+                                    style: const TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey[500],
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue,
                                     ),
                                   ),
-                                if (user.staffId != null)
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 4),
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'ID: ${user.staffId}',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue,
-                                      ),
-                                    ),
-                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -304,9 +323,12 @@ class _StaffRequestsTab extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                         Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                         const SizedBox(width: 6),
-                         Text(user.phone.isEmpty ? 'N/A' : user.phone, style: const TextStyle(fontSize: 13)),
+                        Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Text(
+                          user.phone.isEmpty ? 'N/A' : user.phone,
+                          style: const TextStyle(fontSize: 13),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -354,9 +376,9 @@ class _StaffRequestsTab extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -366,7 +388,9 @@ class _StaffRequestsTab extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reject Request'),
-        content: const Text('Are you sure you want to reject (and delete) this request?'),
+        content: const Text(
+          'Are you sure you want to reject (and delete) this request?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -384,15 +408,15 @@ class _StaffRequestsTab extends StatelessWidget {
       try {
         await Provider.of<AppState>(context, listen: false).rejectUser(uid);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Request rejected')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Request rejected')));
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       }
     }
@@ -491,14 +515,26 @@ class _AddStudentTabState extends State<_AddStudentTab> {
 
             _buildTextField(_nameCtrl, 'Full Name', Icons.person),
             const SizedBox(height: 16),
-            _buildTextField(_emailCtrl, 'Email', Icons.email,
-                keyboardType: TextInputType.emailAddress),
+            _buildTextField(
+              _emailCtrl,
+              'Email',
+              Icons.email,
+              keyboardType: TextInputType.emailAddress,
+            ),
             const SizedBox(height: 16),
-            _buildTextField(_passCtrl, 'Temporary Password', Icons.lock,
-                obscureText: true),
+            _buildTextField(
+              _passCtrl,
+              'Temporary Password',
+              Icons.lock,
+              obscureText: true,
+            ),
             const SizedBox(height: 16),
-            _buildTextField(_phoneCtrl, 'Phone', Icons.phone,
-                keyboardType: TextInputType.phone),
+            _buildTextField(
+              _phoneCtrl,
+              'Phone',
+              Icons.phone,
+              keyboardType: TextInputType.phone,
+            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -512,8 +548,11 @@ class _AddStudentTabState extends State<_AddStudentTab> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildTextField(_planCtrl, 'Mess Plan (e.g. Veg/Non-Veg)',
-                Icons.restaurant_menu),
+            _buildTextField(
+              _planCtrl,
+              'Mess Plan (e.g. Veg/Non-Veg)',
+              Icons.restaurant_menu,
+            ),
             const SizedBox(height: 32),
 
             ElevatedButton(
@@ -530,10 +569,18 @@ class _AddStudentTabState extends State<_AddStudentTab> {
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
-                  : const Text('Create Account',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  : const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -558,7 +605,346 @@ class _AddStudentTabState extends State<_AddStudentTab> {
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.grey[600]),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodReportsTab extends StatefulWidget {
+  const _FoodReportsTab();
+
+  @override
+  State<_FoodReportsTab> createState() => _FoodReportsTabState();
+}
+
+class _FoodReportsTabState extends State<_FoodReportsTab> {
+  MealType? _filterMeal;
+  IssueType? _filterReason;
+
+  Future<void> _showReplaceDialog(
+    BuildContext context,
+    FoodReport report,
+  ) async {
+    final appState = Provider.of<AppState>(context, listen: false);
+    String? selectedReplacementId;
+    String? customName;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Propose Replacement'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String?>(
+                decoration: const InputDecoration(
+                  labelText: 'Choose from pool',
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('No selection'),
+                  ),
+                  ...appState.allReplacements.map(
+                    (r) => DropdownMenuItem(value: r.name, child: Text(r.name)),
+                  ),
+                ],
+                onChanged: (v) => selectedReplacementId = v,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Or enter custom replacement',
+                ),
+                onChanged: (v) => customName = v,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName =
+                    (customName != null && customName!.trim().isNotEmpty)
+                    ? customName!
+                    : (selectedReplacementId ?? '');
+                if (newName.isEmpty) return;
+                try {
+                  await appState.replaceMenuItemForToday(
+                    mealType: report.mealType,
+                    oldName: report.menuItemName,
+                    newName: newName,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Menu updated successfully'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                } finally {
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+
+    return StreamBuilder<List<FoodReport>>(
+      stream: appState.foodReportsStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError)
+          return Center(child: Text('Error: ${snapshot.error}'));
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final reports = snapshot.data ?? [];
+
+        // Count frequencies for highlighting
+        final frequencyMap = <IssueType, int>{};
+        for (var r in reports) {
+          frequencyMap[r.reason] = (frequencyMap[r.reason] ?? 0) + 1;
+        }
+
+        final filteredReports = reports.where((r) {
+          if (_filterMeal != null && r.mealType != _filterMeal) return false;
+          if (_filterReason != null && r.reason != _filterReason) return false;
+          return true;
+        }).toList();
+
+        return Column(
+          children: [
+            // Filter bar
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<MealType?>(
+                      value: _filterMeal,
+                      decoration: const InputDecoration(
+                        labelText: 'Meal Type',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('All Meals'),
+                        ),
+                        ...MealType.values.map(
+                          (m) => DropdownMenuItem(
+                            value: m,
+                            child: Text(m.displayName),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) => setState(() => _filterMeal = val),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<IssueType?>(
+                      value: _filterReason,
+                      decoration: const InputDecoration(
+                        labelText: 'Reason',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('All Reasons'),
+                        ),
+                        ...IssueType.values.map(
+                          (i) => DropdownMenuItem(
+                            value: i,
+                            child: Text(i.displayName),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) => setState(() => _filterReason = val),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Stats summary
+            if (frequencyMap.isNotEmpty) ...[
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: frequencyMap.entries
+                      .map((e) => _buildReasonBadge(e.key, e.value))
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+
+            Expanded(
+              child: filteredReports.isEmpty
+                  ? const Center(
+                      child: Text('No reports found matching criteria'),
+                    )
+                  : SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 24,
+                          columns: const [
+                            DataColumn(label: Text('Student ID')),
+                            DataColumn(label: Text('Menu Item')),
+                            DataColumn(label: Text('Meal')),
+                            DataColumn(label: Text('Reason')),
+                            DataColumn(label: Text('Comments')),
+                            DataColumn(label: Text('Date/Time')),
+                            DataColumn(label: Text('Action')),
+                          ],
+                          rows: filteredReports.map((report) {
+                            final isFrequent =
+                                (frequencyMap[report.reason] ?? 0) > 3;
+                            return DataRow(
+                              color: isFrequent
+                                  ? WidgetStateProperty.all(
+                                      Colors.red.withValues(alpha: 0.05),
+                                    )
+                                  : null,
+                              cells: [
+                                DataCell(
+                                  Text(
+                                    report.studentId.substring(0, 6) + '...',
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    report.menuItemName.isEmpty
+                                        ? '-'
+                                        : report.menuItemName,
+                                  ),
+                                ),
+                                DataCell(
+                                  Text('${report.mealType.displayName}'),
+                                ),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      Text(report.reason.icon),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        report.reason.displayName,
+                                        style: TextStyle(
+                                          color: isFrequent
+                                              ? Colors.red
+                                              : Colors.black,
+                                          fontWeight: isFrequent
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                DataCell(
+                                  SizedBox(
+                                    width: 150,
+                                    child: Text(
+                                      report.comments.isEmpty
+                                          ? '-'
+                                          : report.comments,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    DateFormat(
+                                      'MMM d, HH:mm',
+                                    ).format(report.timestamp),
+                                  ),
+                                ),
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      TextButton.icon(
+                                        icon: const Icon(
+                                          Icons.swap_horiz,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Replace'),
+                                        onPressed: () =>
+                                            _showReplaceDialog(context, report),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildReasonBadge(IssueType type, int count) {
+    bool isUrgent = count > 3;
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: isUrgent
+            ? Colors.red.withOpacity(0.1)
+            : Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isUrgent ? Colors.red : Colors.blue,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(type.icon),
+          const SizedBox(width: 6),
+          Text(
+            '${type.displayName}: $count',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isUrgent ? Colors.red : Colors.blue,
+            ),
+          ),
+        ],
       ),
     );
   }

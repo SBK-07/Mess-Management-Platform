@@ -94,8 +94,61 @@ class _ReplacementScreenState extends State<ReplacementScreen>
             ),
           ),
 
+          // Custom Input & Comments Section
+          _buildCustomInputSection(appState),
+
           // Confirm button
           _buildConfirmButton(context, appState),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomInputSection(AppState appState) {
+    return Container(
+      padding: const EdgeInsets.all(AppConstants.paddingMedium),
+      decoration: BoxDecoration(
+        color: AppConstants.cardColor,
+        border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.2))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Need something else?', style: AppConstants.headingSmall),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Enter custom replacement...',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  onChanged: (val) {
+                    appState.setCustomReplacementName(val.isEmpty ? null : val);
+                    if (val.isNotEmpty) {
+                      setState(() {
+                        _localSelectedReplacement = null;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text('Complements / Comments', style: AppConstants.headingSmall),
+          const SizedBox(height: 8),
+          TextField(
+            maxLines: 2,
+            decoration: const InputDecoration(
+              hintText: 'e.g. Extra butter, No salt...',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.all(12),
+            ),
+            onChanged: (val) => appState.setReplacementComments(val),
+          ),
         ],
       ),
     );
@@ -106,10 +159,10 @@ class _ReplacementScreenState extends State<ReplacementScreen>
       margin: const EdgeInsets.all(AppConstants.paddingMedium),
       padding: const EdgeInsets.all(AppConstants.paddingMedium),
       decoration: BoxDecoration(
-        color: AppConstants.errorColor.withOpacity(0.1),
+        color: AppConstants.errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
         border: Border.all(
-          color: AppConstants.errorColor.withOpacity(0.3),
+          color: AppConstants.errorColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -118,7 +171,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppConstants.errorColor.withOpacity(0.15),
+              color: AppConstants.errorColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
             ),
             child: Center(
@@ -198,7 +251,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _getPoolColor(poolType).withOpacity(0.15),
+                    color: _getPoolColor(poolType).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -264,7 +317,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -275,7 +328,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
           width: double.infinity,
           height: 56,
           child: ElevatedButton(
-            onPressed: _localSelectedReplacement != null
+            onPressed: (_localSelectedReplacement != null || (appState.customReplacementName?.isNotEmpty ?? false))
                 ? () => _confirmReplacement(context, appState)
                 : null,
             style: ElevatedButton.styleFrom(
@@ -289,7 +342,9 @@ class _ReplacementScreenState extends State<ReplacementScreen>
                 Text(
                   _localSelectedReplacement != null
                       ? 'Confirm: ${_localSelectedReplacement!.name}'
-                      : 'Select a replacement',
+                      : (appState.customReplacementName != null
+                          ? 'Confirm: ${appState.customReplacementName}'
+                          : 'Select a replacement'),
                   style: AppConstants.buttonText,
                 ),
               ],

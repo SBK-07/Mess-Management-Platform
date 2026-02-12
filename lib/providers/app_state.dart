@@ -8,10 +8,12 @@ import '../models/pool_type.dart';
 import '../models/week_day.dart';
 import '../models/meal_type.dart';
 import '../models/issue_type.dart';
+import '../models/food_report.dart';
 import '../services/auth_service.dart';
 import '../services/menu_service.dart';
 import '../services/complaint_service.dart';
 import '../services/replacement_service.dart';
+import '../repositories/food_report_repository.dart';
 
 /// Central app state managed with Provider.
 class AppState extends ChangeNotifier {
@@ -20,6 +22,39 @@ class AppState extends ChangeNotifier {
   final MenuService _menuService = MenuService.instance;
   final ComplaintService _complaintService = ComplaintService.instance;
   final ReplacementService _replacementService = ReplacementService.instance;
+  final FoodReportRepository _foodReportRepository =
+      FoodReportRepository.instance;
+
+  // ============== FOOD REPORTS ==============
+
+  Stream<List<FoodReport>> get foodReportsStream =>
+      _foodReportRepository.getReportsStream();
+
+  Future<void> submitFoodReport({
+    required String menuItemId,
+    required String menuItemName,
+    required MealType mealType,
+    required DateTime mealDate,
+    required IssueType reason,
+    required String comments,
+  }) async {
+    if (_currentUser == null) throw Exception("User not logged in");
+
+    final report = FoodReport(
+      id: '', // Firestore generates ID
+      studentId: _currentUser!.uid,
+      studentName: _currentUser!.name,
+      menuItemId: menuItemId,
+      menuItemName: menuItemName,
+      mealType: mealType,
+      mealDate: mealDate,
+      reason: reason,
+      comments: comments,
+      timestamp: DateTime.now(),
+    );
+
+    await _foodReportRepository.submitReport(report);
+  }
 
   // ============== USER STATE ==============
 
@@ -172,10 +207,10 @@ class AppState extends ChangeNotifier {
         // Refresh current user
         final user = _authService.currentFirebaseUser;
         if (user != null) {
-             // We need to fetch app user again?
-             // loginWithEmail does it.
-             // We just need to restore session.
-             // But simpler: just sign in.
+          // We need to fetch app user again?
+          // loginWithEmail does it.
+          // We just need to restore session.
+          // But simpler: just sign in.
         }
       } catch (_) {
         await logout();
@@ -197,9 +232,17 @@ class AppState extends ChangeNotifier {
 
     try {
       final now = DateTime.now();
-      final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final dayNames = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ];
       final dayName = dayNames[now.weekday - 1];
-      
+
       _firestoreMenu = await _menuService.getFirestoreMenuForDay(dayName);
     } catch (e) {
       debugPrint("Error loading Firestore menu: $e");
@@ -209,6 +252,36 @@ class AppState extends ChangeNotifier {
       _isMenuLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Replace an item in today's menu (by meal type). This is used by admin
+  /// to apply a confirmed replacement to the original menu stored in Firestore.
+  Future<void> replaceMenuItemForToday({
+    required MealType mealType,
+    required String oldName,
+    required String newName,
+  }) async {
+    final now = DateTime.now();
+    final dayNames = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final dayName = dayNames[now.weekday - 1];
+
+    await _menuService.updateMenuItemForDay(
+      mealType: mealType,
+      dayName: dayName,
+      oldName: oldName,
+      newName: newName,
+    );
+
+    // Refresh local menu cache
+    await loadDailyMenuFromFirestore();
   }
 
   List<MenuItem> get todaysMenu {
@@ -237,6 +310,12 @@ class AppState extends ChangeNotifier {
   ReplacementItem? _selectedReplacement;
   ReplacementItem? get selectedReplacement => _selectedReplacement;
 
+  String _replacementComments = '';
+  String get replacementComments => _replacementComments;
+
+  String? _customReplacementName;
+  String? get customReplacementName => _customReplacementName;
+
   void selectMenuItem(MenuItem item) {
     _selectedMenuItem = item;
     notifyListeners();
@@ -264,20 +343,45 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  void selectReplacement(ReplacementItem item) {
+  void selectReplacement(ReplacementItem? item) {
     _selectedReplacement = item;
+    if (item != null) _customReplacementName = null;
+    notifyListeners();
+  }
+
+  void setReplacementComments(String comments) {
+    _replacementComments = comments;
+    notifyListeners();
+  }
+
+  void setCustomReplacementName(String? name) {
+    _customReplacementName = name;
+    if (name != null) _selectedReplacement = null;
     notifyListeners();
   }
 
   bool confirmReplacement() {
-    if (_currentComplaint == null || _selectedReplacement == null) {
+    if (_currentComplaint == null ||
+        (_selectedReplacement == null && _customReplacementName == null)) {
       return false;
     }
 
-    _replacementService.recordUsage(_selectedReplacement!.id);
+    final replacementId =
+        _selectedReplacement?.id ??
+        'custom_${DateTime.now().millisecondsSinceEpoch}';
+    final replacementName =
+        _selectedReplacement?.name ?? _customReplacementName!;
+
+    _replacementService.recordUsage(replacementId);
     _complaintService.updateComplaintWithReplacement(
       _currentComplaint!.id,
-      _selectedReplacement!.id,
+      replacementId,
+    );
+
+    // In a real app, we would also store the replacementName and _replacementComments
+    // associated with the complaint/replacement record in Firestore.
+    debugPrint(
+      "Replacement confirmed: $replacementName, Comments: $_replacementComments",
     );
 
     notifyListeners();
@@ -289,13 +393,19 @@ class AppState extends ChangeNotifier {
     _selectedIssueType = null;
     _currentComplaint = null;
     _selectedReplacement = null;
+    _replacementComments = '';
+    _customReplacementName = null;
     notifyListeners();
   }
 
   // ============== REPLACEMENT POOL STATE ==============
 
   List<ReplacementItem> getReplacementsByPoolType(PoolType poolType) {
-    return _replacementService.getReplacementsByPoolType(poolType);
+    final mealType = _currentComplaint?.menuItem.mealType;
+    return _replacementService.getReplacementsByPoolType(
+      poolType,
+      mealType: mealType,
+    );
   }
 
   List<ReplacementItem> get allReplacements =>

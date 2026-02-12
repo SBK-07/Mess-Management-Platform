@@ -8,9 +8,10 @@ import 'feedback_screen.dart';
 import 'login_screen.dart';
 import '../models/meal_type.dart';
 import '../utils/mess_timings.dart';
+import 'my_complaints_screen.dart';
 
 /// Home screen with bottom navigation for students.
-/// 
+///
 /// Contains tabs for Menu, Report (feedback), and Profile.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,10 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Text('🍽️ ', style: TextStyle(fontSize: 24)),
             Text(
               'Hello, ${user?.name ?? 'Student'}!',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -63,10 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -121,7 +116,7 @@ class _ProfileTab extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Profile avatar
           Container(
             width: 100,
@@ -129,10 +124,7 @@ class _ProfileTab extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppConstants.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: AppConstants.primaryColor,
-                width: 3,
-              ),
+              border: Border.all(color: AppConstants.primaryColor, width: 3),
             ),
             child: Center(
               child: Text(
@@ -146,20 +138,17 @@ class _ProfileTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppConstants.paddingMedium),
-          
+
           // User name
-          Text(
-            user?.name ?? 'Student',
-            style: AppConstants.headingLarge,
-          ),
+          Text(user?.name ?? 'Student', style: AppConstants.headingLarge),
           const SizedBox(height: 4),
           Text(
             '@${user?.email.split('@')[0] ?? 'student'}',
             style: AppConstants.bodyMedium,
           ),
-          
+
           const SizedBox(height: AppConstants.paddingXLarge),
-          
+
           // Profile options
           _buildProfileOption(
             icon: Icons.calendar_month_outlined,
@@ -167,28 +156,27 @@ class _ProfileTab extends StatelessWidget {
             subtitle: 'View full weekly mess menu',
             onTap: () => Navigator.pushNamed(context, '/overall_menu'),
           ),
-          
+
           _buildProfileOption(
             icon: Icons.access_time_filled,
             title: 'Mess Timings',
             subtitle: 'View breakfast, lunch, and dinner times',
             onTap: () => _showTimingsDialog(context),
           ),
-          
+
           _buildProfileOption(
             icon: Icons.history,
             title: 'My Complaints',
-            subtitle: '${appState.allComplaints.where((c) => c.studentId == user?.uid).length} complaints submitted',
+            subtitle:
+                '${appState.allComplaints.where((c) => c.studentId == user?.uid).length} complaints submitted',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Complaint history feature coming soon!'),
-                  duration: Duration(seconds: 1),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyComplaintsScreen()),
               );
             },
           ),
-          
+
           _buildProfileOption(
             icon: Icons.settings_outlined,
             title: 'Settings',
@@ -202,7 +190,7 @@ class _ProfileTab extends StatelessWidget {
               );
             },
           ),
-          
+
           _buildProfileOption(
             icon: Icons.help_outline,
             title: 'Help & Support',
@@ -216,9 +204,9 @@ class _ProfileTab extends StatelessWidget {
               );
             },
           ),
-          
+
           const SizedBox(height: AppConstants.paddingLarge),
-          
+
           // Logout button
           SizedBox(
             width: double.infinity,
@@ -261,7 +249,11 @@ class _ProfileTab extends StatelessWidget {
                       color: AppConstants.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.access_time_filled, color: AppConstants.primaryColor, size: 28),
+                    child: const Icon(
+                      Icons.access_time_filled,
+                      color: AppConstants.primaryColor,
+                      size: 28,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   const Text(
@@ -324,25 +316,40 @@ class _ProfileTab extends StatelessWidget {
             color: AppConstants.primaryColor.withValues(alpha: 0.05),
           ),
           children: const [
-             _PaddingText('Meal', bold: true, size: 14),
-             _PaddingText('Working Days', bold: true, size: 14),
-             _PaddingText('Saturday', bold: true, size: 14),
-             _PaddingText('Sun/Hol', bold: true, size: 14),
+            _PaddingText('Meal', bold: true, size: 14),
+            _PaddingText('Working Days', bold: true, size: 14),
+            _PaddingText('Saturday', bold: true, size: 14),
+            _PaddingText('Sun/Hol', bold: true, size: 14),
           ],
         ),
         // Rows
         for (var meal in MealType.values)
           TableRow(
             children: [
-              _PaddingText(meal.displayName, bold: true, size: 13, color: AppConstants.primaryColor),
-              _PaddingText(MessTimings.timings[meal]![DayType.workingDays]!, size: 13),
-              _PaddingText(MessTimings.timings[meal]![DayType.saturday]!, size: 13),
-              _PaddingText(MessTimings.timings[meal]![DayType.sundayHolidays]!, size: 13),
+              _PaddingText(
+                meal.displayName,
+                bold: true,
+                size: 13,
+                color: AppConstants.primaryColor,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.workingDays]!,
+                size: 13,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.saturday]!,
+                size: 13,
+              ),
+              _PaddingText(
+                MessTimings.timings[meal]![DayType.sundayHolidays]!,
+                size: 13,
+              ),
             ],
           ),
       ],
     );
   }
+
   Widget _buildProfileOption({
     required IconData icon,
     required String title,
@@ -364,10 +371,7 @@ class _ProfileTab extends StatelessWidget {
             color: AppConstants.primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppConstants.borderRadiusSmall),
           ),
-          child: Icon(
-            icon,
-            color: AppConstants.primaryColor,
-          ),
+          child: Icon(icon, color: AppConstants.primaryColor),
         ),
         title: Text(title, style: AppConstants.bodyLarge),
         subtitle: Text(subtitle, style: AppConstants.bodySmall),
@@ -413,7 +417,12 @@ class _PaddingText extends StatelessWidget {
   final bool bold;
   final double size;
   final Color? color;
-  const _PaddingText(this.text, {this.bold = false, this.size = 11, this.color});
+  const _PaddingText(
+    this.text, {
+    this.bold = false,
+    this.size = 11,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {

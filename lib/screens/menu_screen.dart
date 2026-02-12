@@ -6,6 +6,7 @@ import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import '../widgets/menu_card.dart';
 import '../utils/mess_timings.dart';
+import 'food_report_screen.dart';
 
 /// Menu display screen with tabs for different meal types.
 /// 
@@ -277,19 +278,11 @@ class _MealTypeList extends StatelessWidget {
                   flex: 2,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      final appState = Provider.of<AppState>(context, listen: false);
-                      appState.selectMenuItem(item);
                       Navigator.pop(context);
-                      
-                      // Navigate to feedback tab
-                      DefaultTabController.of(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Selected "${item.name}" - Go to Report tab to submit feedback'),
-                          action: SnackBarAction(
-                            label: 'OK',
-                            onPressed: () {},
-                          ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FoodReportScreen(menuItem: item),
                         ),
                       );
                     },

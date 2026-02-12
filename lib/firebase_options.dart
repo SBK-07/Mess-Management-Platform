@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'config/firebase_config.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -50,21 +51,21 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCGINVVDChaFEZoc2qtd6YlA5A_biGYSvs',
-    appId: '1:489079520791:web:a78c42c9a1161a6c81e652',
-    messagingSenderId: '489079520791',
-    projectId: 'mess-management-platform',
-    authDomain: 'mess-management-platform.firebaseapp.com',
-    storageBucket: 'mess-management-platform.firebasestorage.app',
-    measurementId: 'G-HZ1LCZML9C',
+    apiKey: FirebaseConfig.webApiKey,
+    appId: FirebaseConfig.webAppId,
+    messagingSenderId: FirebaseConfig.webMessagingSenderId,
+    projectId: FirebaseConfig.webProjectId,
+    authDomain: FirebaseConfig.webAuthDomain,
+    storageBucket: FirebaseConfig.webStorageBucket,
+    measurementId: FirebaseConfig.webMeasurementId,
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAkgiE1VBC_6kDvuoBeR7Eb1EC8jJanrK4',
-    appId: '1:489079520791:android:7e818f198b342d9a81e652',
-    messagingSenderId: '489079520791',
-    projectId: 'mess-management-platform',
-    storageBucket: 'mess-management-platform.firebasestorage.app',
+    apiKey: FirebaseConfig.androidApiKey,
+    appId: FirebaseConfig.androidAppId,
+    messagingSenderId: FirebaseConfig.androidMessagingSenderId,
+    projectId: FirebaseConfig.androidProjectId,
+    storageBucket: FirebaseConfig.androidStorageBucket,
   );
 
 }

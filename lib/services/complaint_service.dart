@@ -84,9 +84,7 @@ class ComplaintService {
   /// Get complaint counts by issue type.
   Map<IssueType, int> getComplaintsByIssueType() {
     final Map<IssueType, int> counts = {
-      IssueType.taste: 0,
-      IssueType.hygiene: 0,
-      IssueType.quantity: 0,
+      for (var type in IssueType.values) type: 0,
     };
 
     for (var complaint in _complaints) {

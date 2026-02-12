@@ -20,12 +20,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneCtrl = TextEditingController();
   final _staffIdCtrl = TextEditingController();
   bool _isLoading = false;
-  
+
   @override
   void initState() {
     super.initState();
     // Pre-fill name and email if user is signed in via Google/Email but has no profile
-    final user = Provider.of<AppState>(context, listen: false).currentFirebaseUser;
+    final user = Provider.of<AppState>(
+      context,
+      listen: false,
+    ).currentFirebaseUser;
     if (user != null) {
       _nameCtrl.text = user.displayName ?? '';
       _phoneCtrl.text = user.phoneNumber ?? '';
@@ -57,10 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -70,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       body: Stack(
+      body: Stack(
         fit: StackFit.expand,
         children: [
           // Background (same as login)
@@ -106,11 +106,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.person_add_alt_1_rounded,
-                              size: 48, color: Color(0xFFE07B39)),
+                          const Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 48,
+                            color: Color(0xFFE07B39),
+                          ),
                           const SizedBox(height: 16),
                           const Text(
-                            'Complete Your Profile',
+                            'Register as Staff',
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -119,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 8),
                           const Text(
-                            'Please enter your staff details to request access.',
+                            'Register as staff to manage mess operations and menu.',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.grey),
                           ),
@@ -127,14 +130,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                           TextFormField(
                             controller: _nameCtrl,
-                            decoration: _inputDecoration('Full Name', Icons.person),
+                            decoration: _inputDecoration(
+                              'Full Name',
+                              Icons.person,
+                            ),
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Required' : null,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _staffIdCtrl,
-                            decoration: _inputDecoration('Staff ID', Icons.badge),
+                            decoration: _inputDecoration(
+                              'Staff ID',
+                              Icons.badge,
+                            ),
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Required' : null,
                           ),
@@ -142,7 +151,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           TextFormField(
                             controller: _phoneCtrl,
                             keyboardType: TextInputType.phone,
-                            decoration: _inputDecoration('Phone Number', Icons.phone),
+                            decoration: _inputDecoration(
+                              'Phone Number',
+                              Icons.phone,
+                            ),
                             validator: (v) =>
                                 v == null || v.isEmpty ? 'Required' : null,
                           ),
@@ -161,10 +173,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
                                   : const Text(
                                       'Submit Request',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                             ),
                           ),

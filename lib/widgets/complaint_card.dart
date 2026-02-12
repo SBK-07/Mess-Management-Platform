@@ -110,8 +110,12 @@ class ComplaintCard extends StatelessWidget {
         return Colors.orange;
       case IssueType.hygiene:
         return Colors.red;
-      case IssueType.quantity:
+      case IssueType.portionSize:
         return Colors.blue;
+      case IssueType.temperature:
+        return Colors.orangeAccent;
+      case IssueType.quality:
+        return Colors.amber;
       case IssueType.other:
         return Colors.blueGrey;
     }
