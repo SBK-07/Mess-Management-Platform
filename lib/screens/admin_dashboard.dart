@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_state.dart';
 import '../models/user.dart';
 import '../widgets/stat_card.dart';
@@ -7,6 +10,8 @@ import '../models/issue_type.dart';
 import '../models/food_report.dart';
 import '../models/meal_type.dart';
 import 'package:intl/intl.dart';
+import '../models/cancellation.dart';
+import '../services/cancellation_service.dart';
 
 /// Admin Dashboard Screen.
 /// Includes Overview, Staff Requests, and Student Creation.
@@ -24,7 +29,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -62,6 +67,7 @@ class _AdminDashboardState extends State<AdminDashboard>
             Tab(icon: Icon(Icons.people_outline_rounded), text: 'Staff'),
             Tab(icon: Icon(Icons.school_rounded), text: 'Students'),
             Tab(icon: Icon(Icons.feedback_outlined), text: 'Reports'),
+            Tab(icon: Icon(Icons.cancel_outlined), text: 'Cancellations'),
           ],
         ),
       ),
@@ -74,6 +80,7 @@ class _AdminDashboardState extends State<AdminDashboard>
             const _StaffRequestsTab(),
             const _AddStudentTab(),
             const _FoodReportsTab(),
+            const _CancellationsTab(),
           ],
         ),
       ),
@@ -852,22 +859,28 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                                   Text('${report.mealType.displayName}'),
                                 ),
                                 DataCell(
-                                  Row(
-                                    children: [
-                                      Text(report.reason.icon),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        report.reason.displayName,
-                                        style: TextStyle(
-                                          color: isFrequent
-                                              ? Colors.red
-                                              : Colors.black,
-                                          fontWeight: isFrequent
-                                              ? FontWeight.bold
-                                              : FontWeight.normal,
+                                  SizedBox(
+                                    width: 140,
+                                    child: Row(
+                                      children: [
+                                        Text(report.reason.icon),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            report.reason.displayName,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: isFrequent
+                                                  ? Colors.red
+                                                  : Colors.black,
+                                              fontWeight: isFrequent
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 DataCell(
@@ -946,6 +959,509 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CancellationsTab extends StatefulWidget {
+  const _CancellationsTab();
+
+  @override
+  State<_CancellationsTab> createState() => _CancellationsTabState();
+}
+
+class _CancellationsTabState extends State<_CancellationsTab> {
+  final CancellationService _cancellationService = CancellationService();
+  String _searchQuery = '';
+  String _statusFilter = 'All';
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  IconData _statusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Icons.check_circle_rounded;
+      case 'rejected':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.hourglass_top_rounded;
+    }
+  }
+
+  void _showPdfViewer(BuildContext context, String url, String studentName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 60),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade800,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.picture_as_pdf_rounded, color: Colors.white, size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Document — $studentName',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white70, size: 22),
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            // Body
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.picture_as_pdf_rounded, size: 48, color: Colors.red.shade400),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    studentName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'PDF document attached to this cancellation request',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: const Text('Open PDF in Browser', style: TextStyle(fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade800,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        try {
+                          final bytes = base64Decode(url); // url is base64
+                          final blob = html.Blob([bytes], 'application/pdf');
+                          final blobUrl = html.Url.createObjectUrlFromBlob(blob);
+                          html.window.open(blobUrl, '_blank');
+                          // Revoke URL after a delay to free memory
+                          Future.delayed(const Duration(seconds: 10), () {
+                            html.Url.revokeObjectUrl(blobUrl);
+                          });
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text('Error viewing PDF: $e')),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmReject(Cancellation cancellation) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Text('Reject Request'),
+          ],
+        ),
+        content: Text(
+          'Reject the cancellation request from ${cancellation.studentName} '
+          '(${DateFormat('MMM d').format(cancellation.absenceStartDate)} – '
+          '${DateFormat('MMM d').format(cancellation.absenceEndDate)})?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _cancellationService.updateCancellationStatus(
+        cancellation.id,
+        'Rejected',
+        cancellation.studentId,
+        cancellation.cancellationReason,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request rejected'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Search bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search by student name…',
+              prefixIcon: const Icon(Icons.search_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+          ),
+        ),
+        // Status filter chips
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            height: 44,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: ['All', 'Pending', 'Approved', 'Rejected'].map((label) {
+                final isSelected = _statusFilter == label;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    selected: isSelected,
+                    label: Text(label, style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.black87,
+                    )),
+                    selectedColor: label == 'Approved'
+                        ? Colors.green
+                        : label == 'Rejected'
+                            ? Colors.red
+                            : label == 'Pending'
+                                ? Colors.orange
+                                : Colors.orange.shade800,
+                    backgroundColor: Colors.grey.shade200,
+                    checkmarkColor: Colors.white,
+                    onSelected: (_) => setState(() => _statusFilter = label),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Cancellation cards
+        Expanded(
+          child: StreamBuilder<List<Cancellation>>(
+            stream: _cancellationService.getAllCancellations(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              final cancellations = snapshot.data ?? [];
+              final filtered = cancellations.where((c) {
+                final matchesSearch = c.studentName.toLowerCase().contains(_searchQuery);
+                final matchesStatus = _statusFilter == 'All' ||
+                    c.status.toLowerCase() == _statusFilter.toLowerCase();
+                return matchesSearch && matchesStatus;
+              }).toList();
+
+              if (filtered.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade300),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No cancellation requests found',
+                        style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final c = filtered[index];
+                  final statusColor = _statusColor(c.status);
+                  final isPending = c.status.toLowerCase() == 'pending';
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    elevation: 3,
+                    shadowColor: Colors.black12,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          // Color accent bar
+                          Container(
+                            width: 6,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                bottomLeft: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                          // Card content
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Row 1: Name + status badge
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: statusColor.withOpacity(0.15),
+                                        child: Icon(_statusIcon(c.status), color: statusColor, size: 20),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              c.studentName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              'Submitted ${DateFormat('MMM d, yyyy').format(c.createdAt)}',
+                                              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: statusColor.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          c.status.toUpperCase(),
+                                          style: TextStyle(
+                                            color: statusColor,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  // Row 2: Date range, reason, duration
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey.shade600),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '${DateFormat('MMM d').format(c.absenceStartDate)} → ${DateFormat('MMM d').format(c.absenceEndDate)}',
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.shade100,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            '${c.durationDays} days',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade900,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Reason
+                                  Row(
+                                    children: [
+                                      Icon(Icons.label_outline_rounded, size: 15, color: Colors.grey.shade500),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        c.cancellationReason,
+                                        style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  // Row 3: Document button + Action buttons
+                                  Row(
+                                    children: [
+                                      // View PDF button
+                                      if (c.hasDocument)
+                                        OutlinedButton.icon(
+                                          icon: Icon(Icons.picture_as_pdf_rounded, size: 16, color: Colors.blue.shade700),
+                                          label: Text('View PDF', style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.w600)),
+                                          style: OutlinedButton.styleFrom(
+                                            side: BorderSide(color: Colors.blue.shade200),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                          ),
+                                          onPressed: () => _showPdfViewer(context, c.documentBase64!, c.studentName),
+                                        )
+                                      else
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade100,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.description_outlined, size: 14, color: Colors.grey.shade400),
+                                              const SizedBox(width: 6),
+                                              Text('No document', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                            ],
+                                          ),
+                                        ),
+                                      const Spacer(),
+                                      // Approve / Reject buttons (only for pending)
+                                      if (isPending) ...[
+                                        TextButton(
+                                          onPressed: () => _confirmReject(c),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.red,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                          child: const Text('Reject', style: TextStyle(fontWeight: FontWeight.w600)),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(Icons.check_rounded, size: 18),
+                                          label: const Text('Approve', style: TextStyle(fontWeight: FontWeight.w600)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            elevation: 0,
+                                          ),
+                                          onPressed: () async {
+                                            await _cancellationService.updateCancellationStatus(
+                                              c.id,
+                                              'Approved',
+                                              c.studentId,
+                                              c.cancellationReason,
+                                            );
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Request approved'), backgroundColor: Colors.green),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

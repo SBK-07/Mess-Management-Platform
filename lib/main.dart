@@ -11,6 +11,7 @@ import 'screens/admin_dashboard.dart';
 import 'screens/staff_home_screen.dart';
 import 'screens/home_screen.dart';      // Student Home
 import 'screens/overall_menu_screen.dart';
+import 'screens/mess_cancellation_screen.dart';
 import 'utils/upload_menu.dart';
 import 'utils/constants.dart';          // AppTheme
 
@@ -48,6 +49,7 @@ class MessManagementApp extends StatelessWidget {
           '/staff': (context) => const StaffHomeScreen(),
           '/home': (context) => const HomeScreen(),
           '/overall_menu': (context) => const OverallMenuScreen(),
+          '/mess_cancellation': (context) => const MessCancellationScreen(),
         },
       ),
     );

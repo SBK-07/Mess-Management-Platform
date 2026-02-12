@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import '../models/menu_item.dart';
+import '../models/notification.dart';
+import '../services/notification_service.dart';
 import 'menu_screen.dart';
 import 'feedback_screen.dart';
 import 'login_screen.dart';
@@ -47,15 +49,103 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              // Show notifications (placeholder)
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('No new notifications'),
-                  duration: Duration(seconds: 1),
+          StreamBuilder<List<NotificationModel>>(
+            stream: NotificationService().getUserNotifications(user?.uid ?? ''),
+            builder: (context, snapshot) {
+              final notifications = snapshot.data ?? [];
+              final unreadCount = notifications.where((n) => !n.isRead).length;
+
+              return PopupMenuButton<String>(
+                icon: Stack(
+                  children: [
+                    const Icon(Icons.notifications_outlined),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+                offset: const Offset(0, 50),
+                itemBuilder: (context) {
+                  if (notifications.isEmpty) {
+                    return [
+                      const PopupMenuItem(
+                        enabled: false,
+                        child: Text('No notifications'),
+                      ),
+                    ];
+                  }
+
+                  return notifications.map((notification) {
+                    return PopupMenuItem<String>(
+                      value: notification.id,
+                      enabled: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (!notification.isRead)
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  margin: const EdgeInsets.only(right: 8),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  notification.title,
+                                  style: TextStyle(
+                                    fontWeight: notification.isRead
+                                        ? FontWeight.normal
+                                        : FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            notification.message,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Divider(),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                },
+                onSelected: (id) {
+                  NotificationService().markAsRead(id);
+                },
               );
             },
           ),
@@ -162,6 +252,13 @@ class _ProfileTab extends StatelessWidget {
             title: 'Mess Timings',
             subtitle: 'View breakfast, lunch, and dinner times',
             onTap: () => _showTimingsDialog(context),
+          ),
+          
+          _buildProfileOption(
+            icon: Icons.cancel_schedule_send_outlined,
+            title: 'Mess Cancellation',
+            subtitle: 'Pre-inform absence to reduce waste',
+            onTap: () => Navigator.pushNamed(context, '/mess_cancellation'),
           ),
 
           _buildProfileOption(
