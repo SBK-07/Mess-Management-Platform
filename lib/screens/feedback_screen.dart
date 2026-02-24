@@ -44,7 +44,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
-          const Text(
+          Text(
             'Report Dissatisfaction',
             style: AppConstants.headingMedium,
           ),
@@ -142,11 +142,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   (selectedItem != null && _localSelectedIssueType != null)
                   ? () => _submitComplaint(context, appState)
                   : null,
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.send),
-                  SizedBox(width: 8),
+                  const Icon(Icons.send),
+                  const SizedBox(width: 8),
                   Text('Submit Report', style: AppConstants.buttonText),
                 ],
               ),
@@ -376,7 +376,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Select Menu Item',
                       style: AppConstants.headingMedium,
                     ),

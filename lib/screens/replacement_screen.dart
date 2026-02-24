@@ -114,7 +114,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Need something else?', style: AppConstants.headingSmall),
+          Text('Need something else?', style: AppConstants.headingSmall),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -138,7 +138,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
             ],
           ),
           const SizedBox(height: 12),
-          const Text('Complements / Comments', style: AppConstants.headingSmall),
+          Text('Complements / Comments', style: AppConstants.headingSmall),
           const SizedBox(height: 8),
           TextField(
             maxLines: 2,
@@ -186,7 +186,7 @@ class _ReplacementScreenState extends State<ReplacementScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Reported Issue:',
                   style: AppConstants.bodySmall,
                 ),
@@ -381,8 +381,8 @@ class _ReplacementScreenState extends State<ReplacementScreen>
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to confirm replacement. Please try again.'),
+        SnackBar(
+          content: const Text('Failed to confirm replacement. Please try again.'),
           backgroundColor: AppConstants.errorColor,
         ),
       );

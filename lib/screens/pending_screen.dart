@@ -1,22 +1,51 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 
 /// Screen shown to users who have registered but are not yet approved by an admin.
-class PendingScreen extends StatelessWidget {
+class PendingScreen extends StatefulWidget {
   const PendingScreen({super.key});
+
+  @override
+  State<PendingScreen> createState() => _PendingScreenState();
+}
+
+class _PendingScreenState extends State<PendingScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.orange[50]!,
-              Colors.white,
+              Color(0xFFF7F3EE),
+              Color(0xFFFFF3EB),
+              Color(0xFFF7F3EE),
             ],
           ),
         ),
@@ -26,35 +55,76 @@ class PendingScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[100],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.hourglass_empty_rounded,
-                    size: 64,
-                    color: Color(0xFFE07B39),
+                // Animated hourglass
+                ScaleTransition(
+                  scale: _pulseAnim,
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE07B39).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFE07B39).withOpacity(0.2),
+                        width: 2,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.hourglass_empty_rounded,
+                      size: 52,
+                      color: Color(0xFFE07B39),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                const Text(
+                const SizedBox(height: 36),
+                Text(
                   'Approval Pending',
-                  style: TextStyle(
-                    fontSize: 24,
+                  style: GoogleFonts.poppins(
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
+                    color: const Color(0xFF2D1810),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 340),
+                  child: Text(
+                    'Your request has been submitted successfully.\nPlease wait for an administrator to approve your account.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: const Color(0xFF6B5B50),
+                      height: 1.6,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Your request has been submitted successfully.\nPlease wait for an administrator to approve your account.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    height: 1.5,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE07B39).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: const Color(0xFFE07B39).withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'You\'ll be notified once approved',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: const Color(0xFFE07B39),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 48),
@@ -66,8 +136,14 @@ class PendingScreen extends StatelessWidget {
                       Provider.of<AppState>(context, listen: false).logout();
                       Navigator.pushReplacementNamed(context, '/');
                     },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Logout'),
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: Text(
+                      'Back to Login',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFE07B39),
                       side: const BorderSide(color: Color(0xFFE07B39)),
