@@ -48,3 +48,35 @@ flutter run
 - **Staff Features**:
   - View menu (placeholder)
   - View complaints (placeholder)
+
+## Repository Branch Structure (Git Flow)
+
+| Branch | Purpose |
+|---|---|
+| `main` | Stable, production-ready code |
+| `develop` | Integration branch for all features |
+| `feature/user-management` | Login, signup, role-based access |
+| `feature/menu-management` | Weekly menu, Firebase menu upload |
+| `feature/feedback-processing` | Student feedback and ratings |
+| `feature/replacement-management` | Meal replacement requests |
+| `feature/leave-wastage` | Mess cancellation and wastage tracking |
+| `feature/billing-management` | Billing and PDF export |
+| `feature/analytics-reporting` | Admin analytics dashboard |
+| `docs/srs` | SRS documentation |
+| `docs/dfd-diagrams` | DFD Level-0, Level-1, Level-2 |
+
+## Documentation
+
+All assignment documents are located in the [`docs/`](docs/) directory:
+
+- [`Assignment5_Git_VersionControl.md`](docs/Assignment5_Git_VersionControl.md) — Git & GitHub workflow (Assignment 5)
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Flutter (Dart) |
+| Backend | Firebase Firestore |
+| Authentication | Firebase Auth + Google Sign-In |
+| State Management | Provider |
+| Version Control | Git + GitHub |
