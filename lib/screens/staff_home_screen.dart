@@ -6,6 +6,7 @@ import '../utils/constants.dart';
 import 'login_screen.dart';
 import 'overall_menu_screen.dart';
 import 'staff_today_menu_screen.dart';
+import 'staff_student_management_screen.dart';
 
 /// Staff home screen — landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
@@ -22,9 +23,7 @@ class StaffHomeScreen extends StatelessWidget {
         child: Container(
           decoration: const BoxDecoration(
             gradient: AppConstants.headerGradient,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(20),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
                 color: Color(0x30E07B39),
@@ -65,8 +64,11 @@ class StaffHomeScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.logout_rounded,
-                          color: Colors.white, size: 20),
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       onPressed: () => _showLogoutDialog(context, appState),
                     ),
                   ),
@@ -156,7 +158,8 @@ class StaffHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const StaffTodayMenuScreen()),
+                    builder: (_) => const StaffTodayMenuScreen(),
+                  ),
                 );
               },
             ),
@@ -169,8 +172,7 @@ class StaffHomeScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const OverallMenuScreen()),
+                  MaterialPageRoute(builder: (_) => const OverallMenuScreen()),
                 );
               },
             ),
@@ -185,6 +187,21 @@ class StaffHomeScreen extends StatelessWidget {
                   const SnackBar(
                     content: Text('Complaint management coming soon!'),
                     duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildActionCard(
+              icon: Icons.person_add_alt_1_rounded,
+              title: 'Add Students',
+              subtitle: 'Add students or bulk import from file',
+              color: AppConstants.infoColor,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StaffStudentManagementScreen(),
                   ),
                 );
               },
@@ -261,9 +278,7 @@ class StaffHomeScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Logout',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),

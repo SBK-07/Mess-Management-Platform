@@ -12,6 +12,7 @@ import 'login_screen.dart';
 import '../models/meal_type.dart';
 import '../utils/mess_timings.dart';
 import 'my_complaints_screen.dart';
+import '../services/auth_service.dart';
 
 /// Home screen with bottom navigation for students.
 class HomeScreen extends StatefulWidget {
@@ -41,9 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           decoration: const BoxDecoration(
             gradient: AppConstants.headerGradient,
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(20),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
             boxShadow: [
               BoxShadow(
                 color: Color(0x30E07B39),
@@ -95,12 +94,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   // Notifications
                   StreamBuilder<List<NotificationModel>>(
-                    stream: NotificationService()
-                        .getUserNotifications(user?.uid ?? ''),
+                    stream: NotificationService().getUserNotifications(
+                      user?.uid ?? '',
+                    ),
                     builder: (context, snapshot) {
                       final notifications = snapshot.data ?? [];
-                      final unreadCount =
-                          notifications.where((n) => !n.isRead).length;
+                      final unreadCount = notifications
+                          .where((n) => !n.isRead)
+                          .length;
 
                       return PopupMenuButton<String>(
                         icon: Stack(
@@ -183,8 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                             color: Color(0xFFE07B39),
                                             shape: BoxShape.circle,
                                           ),
-                                          margin:
-                                              const EdgeInsets.only(right: 8),
+                                          margin: const EdgeInsets.only(
+                                            right: 8,
+                                          ),
                                         ),
                                       Expanded(
                                         child: Text(
@@ -231,9 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.06),
@@ -243,9 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: BottomNavigationBar(
             currentIndex: _currentIndex,
             onTap: (index) => setState(() => _currentIndex = index),
@@ -354,10 +352,7 @@ class _ProfileTab extends StatelessWidget {
           // Section header
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              'Quick Actions',
-              style: AppConstants.headingSmall,
-            ),
+            child: Text('Quick Actions', style: AppConstants.headingSmall),
           ),
           const SizedBox(height: 12),
 
@@ -392,6 +387,18 @@ class _ProfileTab extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MyComplaintsScreen()),
+              );
+            },
+          ),
+
+          _buildProfileOption(
+            icon: Icons.lock_outline_rounded,
+            title: 'Change Password',
+            subtitle: 'Update your account password',
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (_) => const _ChangePasswordDialog(),
               );
             },
           ),
@@ -631,7 +638,13 @@ class _ProfileTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: AppConstants.bodyLarge.copyWith(fontSize: 14, fontWeight: FontWeight.w500)),
+                      Text(
+                        title,
+                        style: AppConstants.bodyLarge.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(subtitle, style: AppConstants.bodySmall),
                     ],
@@ -654,9 +667,7 @@ class _ProfileTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Logout',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
@@ -725,6 +736,414 @@ class _PaddingText extends StatelessWidget {
           fontSize: size,
           color: color,
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CHANGE PASSWORD DIALOG
+// ─────────────────────────────────────────────────────────────
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _currentPwCtrl = TextEditingController();
+  final _newPwCtrl = TextEditingController();
+  final _confirmPwCtrl = TextEditingController();
+  bool _showCurrent = false;
+  bool _showNew = false;
+  bool _showConfirm = false;
+  bool _isLoading = false;
+
+  String get _pw => _newPwCtrl.text;
+  bool get _hasMinLength => _pw.length >= 8;
+  bool get _hasUppercase => _pw.contains(RegExp(r'[A-Z]'));
+  bool get _hasLowercase => _pw.contains(RegExp(r'[a-z]'));
+  bool get _hasNumber => _pw.contains(RegExp(r'[0-9]'));
+  bool get _hasSpecial =>
+      _pw.contains(RegExp(r'[!@#\$%\^&\*\(\),.?":{}|<>_\-\+=\[\]\\/~`]'));
+  bool get _passwordsMatch => _pw.isNotEmpty && _pw == _confirmPwCtrl.text;
+  bool get _allMet =>
+      _hasMinLength &&
+      _hasUppercase &&
+      _hasLowercase &&
+      _hasNumber &&
+      _hasSpecial &&
+      _passwordsMatch;
+
+  int get _strengthLevel {
+    int s = 0;
+    if (_hasMinLength) s++;
+    if (_hasUppercase) s++;
+    if (_hasLowercase) s++;
+    if (_hasNumber) s++;
+    if (_hasSpecial) s++;
+    return s;
+  }
+
+  Color get _strengthColor {
+    switch (_strengthLevel) {
+      case 0:
+      case 1:
+        return Colors.red;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.amber.shade700;
+      case 4:
+        return Colors.lightGreen;
+      case 5:
+        return const Color(0xFF2E7D32);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String get _strengthLabel {
+    switch (_strengthLevel) {
+      case 0:
+      case 1:
+        return 'Weak';
+      case 2:
+        return 'Fair';
+      case 3:
+        return 'Good';
+      case 4:
+        return 'Strong';
+      case 5:
+        return 'Excellent';
+      default:
+        return '';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _newPwCtrl.addListener(() => setState(() {}));
+    _confirmPwCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _currentPwCtrl.dispose();
+    _newPwCtrl.dispose();
+    _confirmPwCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_allMet || _currentPwCtrl.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.changePassword(
+        currentPassword: _currentPwCtrl.text,
+        newPassword: _pw,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Password changed successfully!',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: AppConstants.successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        String msg = 'Failed to change password';
+        final err = e.toString();
+        if (err.contains('wrong-password') ||
+            err.contains('invalid-credential')) {
+          msg = 'Current password is incorrect';
+        } else if (err.contains('weak-password')) {
+          msg = 'Password is too weak. Try a stronger one.';
+        } else if (err.contains('requires-recent-login')) {
+          msg =
+              'Please logout and login again, then try changing your password.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppConstants.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Header ──
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppConstants.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Change Password',
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppConstants.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Update your account password',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppConstants.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.grey.withOpacity(0.1),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // ── Current Password ──
+              _buildPasswordField(
+                controller: _currentPwCtrl,
+                label: 'Current Password',
+                icon: Icons.lock_rounded,
+                show: _showCurrent,
+                onToggle: () => setState(() => _showCurrent = !_showCurrent),
+              ),
+              const SizedBox(height: 20),
+
+              // ── New Password ──
+              _buildPasswordField(
+                controller: _newPwCtrl,
+                label: 'New Password',
+                icon: Icons.lock_open_rounded,
+                show: _showNew,
+                onToggle: () => setState(() => _showNew = !_showNew),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Strength Bar + Constraints ──
+              if (_pw.isNotEmpty) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _strengthLevel / 5,
+                          backgroundColor: Colors.grey.shade200,
+                          color: _strengthColor,
+                          minHeight: 6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _strengthLabel,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _strengthColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _constraintRow(_hasMinLength, 'At least 8 characters'),
+                _constraintRow(
+                  _hasUppercase,
+                  'Contains uppercase letter (A-Z)',
+                ),
+                _constraintRow(
+                  _hasLowercase,
+                  'Contains lowercase letter (a-z)',
+                ),
+                _constraintRow(_hasNumber, 'Contains a number (0-9)'),
+                _constraintRow(
+                  _hasSpecial,
+                  'Contains special character (!@#\$%...)',
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // ── Confirm Password ──
+              _buildPasswordField(
+                controller: _confirmPwCtrl,
+                label: 'Confirm New Password',
+                icon: Icons.check_circle_outline_rounded,
+                show: _showConfirm,
+                onToggle: () => setState(() => _showConfirm = !_showConfirm),
+                errorText: _confirmPwCtrl.text.isNotEmpty && !_passwordsMatch
+                    ? 'Passwords do not match'
+                    : null,
+              ),
+              const SizedBox(height: 28),
+
+              // ── Submit Button ──
+              SizedBox(
+                height: 50,
+                child: ElevatedButton(
+                  onPressed:
+                      (_allMet && _currentPwCtrl.text.isNotEmpty && !_isLoading)
+                      ? _submit
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryColor,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: _allMet ? 2 : 0,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : Text(
+                          'Update Password',
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required bool show,
+    required VoidCallback onToggle,
+    String? errorText,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: !show,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.poppins(fontSize: 13),
+        prefixIcon: Icon(
+          icon,
+          size: 20,
+          color: AppConstants.primaryColor.withOpacity(0.7),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            show ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+            size: 20,
+            color: Colors.grey,
+          ),
+          onPressed: onToggle,
+        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppConstants.primaryColor,
+            width: 2,
+          ),
+        ),
+        filled: true,
+        fillColor: const Color(0xFFF7F3EE),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        errorText: errorText,
+        errorStyle: GoogleFonts.poppins(fontSize: 11),
+      ),
+    );
+  }
+
+  Widget _constraintRow(bool met, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: met ? AppConstants.successColor : Colors.transparent,
+              border: Border.all(
+                color: met ? AppConstants.successColor : Colors.grey.shade400,
+                width: 1.5,
+              ),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: met
+                ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: met
+                    ? AppConstants.successColor
+                    : AppConstants.textSecondary,
+                fontWeight: met ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

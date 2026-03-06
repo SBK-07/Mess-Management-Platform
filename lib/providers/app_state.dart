@@ -81,8 +81,8 @@ class AppState extends ChangeNotifier {
       final user = await _authService.login(email, password);
       _currentUser = user;
 
-      // Save admin credentials for re-auth
-      if (user.isAdmin) {
+      // Save credentials for re-auth (admin or staff)
+      if (user.isAdmin || user.isStaff) {
         _adminEmail = email;
         _adminPassword = password;
       }
@@ -197,6 +197,9 @@ class AppState extends ChangeNotifier {
     await _reAuthenticateAdmin();
   }
 
+  /// Re-authenticate admin/staff after creating student accounts.
+  /// Creating a Firebase Auth account signs out the current user,
+  /// so we need to sign back in.
   Future<void> _reAuthenticateAdmin() async {
     if (_adminEmail != null && _adminPassword != null) {
       try {
@@ -204,19 +207,100 @@ class AppState extends ChangeNotifier {
           email: _adminEmail!,
           password: _adminPassword!,
         );
-        // Refresh current user
-        final user = _authService.currentFirebaseUser;
-        if (user != null) {
-          // We need to fetch app user again?
-          // loginWithEmail does it.
-          // We just need to restore session.
-          // But simpler: just sign in.
-        }
       } catch (_) {
         await logout();
         rethrow;
       }
     }
+  }
+
+  /// Create multiple student accounts in bulk (fast version).
+  /// Returns a list of results (success/failure per student).
+  /// Uses [onProgress] callback to report progress for each student.
+  Future<List<Map<String, dynamic>>> createStudentsBulk({
+    required List<Map<String, String>> students,
+    void Function(int completed, int total)? onProgress,
+  }) async {
+    final results = <Map<String, dynamic>>[];
+
+    for (int i = 0; i < students.length; i++) {
+      final student = students[i];
+      final email = (student['email'] ?? '').trim();
+      final name = (student['name'] ?? '').trim();
+
+      // Skip rows with empty or invalid email
+      if (email.isEmpty || !email.contains('@')) {
+        results.add({
+          'email': email,
+          'name': name,
+          'success': false,
+          'error': email.isEmpty
+              ? 'Email is empty — skipped'
+              : 'Invalid email format — skipped',
+        });
+        onProgress?.call(i + 1, students.length);
+        continue;
+      }
+
+      try {
+        await _authService.createStudentFast(
+          name: name,
+          email: email,
+          tempPassword: 'mess@1234',
+          department: student['department'],
+          digitalId: student['digitalId'],
+        );
+        await _reAuthenticateAdmin();
+        results.add({'email': email, 'name': name, 'success': true});
+      } catch (e) {
+        // Try to re-auth even on failure
+        try {
+          await _reAuthenticateAdmin();
+        } catch (_) {}
+
+        // Provide user-friendly error messages
+        String errorMsg = e.toString();
+        if (errorMsg.contains('email-already-in-use')) {
+          errorMsg = 'Email already registered';
+        } else if (errorMsg.contains('invalid-email')) {
+          errorMsg = 'Invalid email format';
+        } else if (errorMsg.contains('weak-password')) {
+          errorMsg = 'Password too weak';
+        } else {
+          errorMsg = errorMsg.replaceAll('Exception: ', '');
+        }
+
+        results.add({
+          'email': email,
+          'name': name,
+          'success': false,
+          'error': errorMsg,
+        });
+      }
+      onProgress?.call(i + 1, students.length);
+    }
+
+    return results;
+  }
+
+  // ============== ADMIN: STUDENT LISTING & EDITING ==============
+
+  /// Stream of all students for the admin dashboard.
+  Stream<List<AppUser>> get allStudents => _authService.allStudents;
+
+  /// Update student details (phone, mess type, room no).
+  Future<void> updateStudentDetails({
+    required String uid,
+    String? phone,
+    String? messPlan,
+    String? roomNo,
+  }) async {
+    await _authService.updateStudentDetails(
+      uid: uid,
+      phone: phone,
+      messPlan: messPlan,
+      roomNo: roomNo,
+    );
   }
 
   // ============== MENU STATE ==============
