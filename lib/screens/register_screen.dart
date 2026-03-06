@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 
@@ -14,21 +15,30 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _staffIdCtrl = TextEditingController();
   bool _isLoading = false;
+  late AnimationController _animController;
+  late Animation<double> _fadeIn;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill name and email if user is signed in via Google/Email but has no profile
-    final user = Provider.of<AppState>(
-      context,
-      listen: false,
-    ).currentFirebaseUser;
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _fadeIn = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    );
+    _animController.forward();
+
+    final user = Provider.of<AppState>(context, listen: false).currentFirebaseUser;
     if (user != null) {
       _nameCtrl.text = user.displayName ?? '';
       _phoneCtrl.text = user.phoneNumber ?? '';
@@ -37,6 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _animController.dispose();
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
     _staffIdCtrl.dispose();
@@ -55,7 +66,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         staffId: _staffIdCtrl.text,
       );
       if (!mounted) return;
-      // Navigate to Pending Screen
       Navigator.pushReplacementNamed(context, '/pending');
     } catch (e) {
       if (!mounted) return;
@@ -67,22 +77,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: GoogleFonts.poppins(
+        color: const Color(0xFF6B5B50),
+        fontSize: 14,
+      ),
+      prefixIcon: Container(
+        margin: const EdgeInsets.only(left: 12, right: 8),
+        child: Icon(icon, color: const Color(0xFFE07B39), size: 20),
+      ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 44),
+      filled: true,
+      fillColor: const Color(0xFFF7F3EE),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE07B39), width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background (same as login)
-          Image.asset('assets/images/food_background.png', fit: BoxFit.cover),
+          Image.asset(
+            'assets/images/food_background.png',
+            fit: BoxFit.cover,
+            colorBlendMode: BlendMode.darken,
+            color: Colors.black.withOpacity(0.15),
+          ),
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.5),
-                  Colors.black.withValues(alpha: 0.8),
+                  Colors.black.withOpacity(0.5),
+                  Colors.black.withOpacity(0.7),
                 ],
               ),
             ),
@@ -90,102 +134,128 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.person_add_alt_1_rounded,
-                            size: 48,
-                            color: Color(0xFFE07B39),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Register as Staff',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Register as staff to manage mess operations and menu.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
-
-                          TextFormField(
-                            controller: _nameCtrl,
-                            decoration: _inputDecoration(
-                              'Full Name',
-                              Icons.person,
-                            ),
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _staffIdCtrl,
-                            decoration: _inputDecoration(
-                              'Staff ID',
-                              Icons.badge,
-                            ),
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _phoneCtrl,
-                            keyboardType: TextInputType.phone,
-                            decoration: _inputDecoration(
-                              'Phone Number',
-                              Icons.phone,
-                            ),
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Required' : null,
-                          ),
-                          const SizedBox(height: 32),
-
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFE07B39),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text(
-                                      'Submit Request',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
+              child: FadeTransition(
+                opacity: _fadeIn,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 420),
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
                           ),
                         ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE07B39).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: const Icon(
+                                Icons.person_add_alt_1_rounded,
+                                size: 36,
+                                color: Color(0xFFE07B39),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Complete Registration',
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2D1810),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Fill in your details to complete\nyour staff registration',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: const Color(0xFF6B5B50),
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+
+                            TextFormField(
+                              controller: _nameCtrl,
+                              style: GoogleFonts.poppins(fontSize: 14),
+                              decoration: _inputDecoration('Full Name', Icons.person_outline_rounded),
+                              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _staffIdCtrl,
+                              style: GoogleFonts.poppins(fontSize: 14),
+                              decoration: _inputDecoration('Staff ID', Icons.badge_outlined),
+                              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _phoneCtrl,
+                              keyboardType: TextInputType.phone,
+                              style: GoogleFonts.poppins(fontSize: 14),
+                              decoration: _inputDecoration('Phone Number', Icons.phone_outlined),
+                              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                            ),
+                            const SizedBox(height: 32),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFE07B39),
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: const Color(0xFFE07B39).withOpacity(0.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 22,
+                                        width: 22,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2.5,
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.send_rounded, size: 18),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            'Submit Request',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -195,16 +265,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: Colors.grey[600]),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      filled: true,
-      fillColor: Colors.grey[50],
     );
   }
 }

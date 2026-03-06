@@ -134,7 +134,7 @@ class _ConfirmationScreenState extends State<ConfirmationScreen>
                     ),
                     child: Column(
                       children: [
-                        const Text(
+                        Text(
                           'Summary',
                           style: AppConstants.headingMedium,
                         ),

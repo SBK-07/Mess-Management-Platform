@@ -20,6 +20,8 @@ class AppUser {
   final String? rollNo;
   final String? roomNo;
   final String? messPlan;
+  final String? department;
+  final String? digitalId;
 
   AppUser({
     required this.uid,
@@ -35,6 +37,8 @@ class AppUser {
     this.rollNo,
     this.roomNo,
     this.messPlan,
+    this.department,
+    this.digitalId,
   });
 
   bool get isAdmin => role == 'admin' && approved;
@@ -58,6 +62,8 @@ class AppUser {
       rollNo: data['rollNo'],
       roomNo: data['roomNo'],
       messPlan: data['messPlan'],
+      department: data['department'],
+      digitalId: data['digitalId'],
     );
   }
 
@@ -76,10 +82,13 @@ class AppUser {
       if (rollNo != null) 'rollNo': rollNo,
       if (roomNo != null) 'roomNo': roomNo,
       if (messPlan != null) 'messPlan': messPlan,
+      if (department != null) 'department': department,
+      if (digitalId != null) 'digitalId': digitalId,
     };
     return map;
   }
 
   @override
-  String toString() => 'AppUser(uid: $uid, name: $name, role: $role, approved: $approved)';
+  String toString() =>
+      'AppUser(uid: $uid, name: $name, role: $role, approved: $approved)';
 }

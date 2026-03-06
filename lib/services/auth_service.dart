@@ -40,7 +40,8 @@ class AuthService {
     }
 
     // Obtain the auth details from the request
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
 
     // Create a new credential
     final AuthCredential credential = GoogleAuthProvider.credential(
@@ -62,7 +63,7 @@ class AuthService {
     // New user won't have a profile yet, so this will likely throw 'new_user'
     return _fetchAndValidateUser(cred.user!);
   }
-  
+
   /// Sign up a staff member with full details.
   Future<void> signUpStaffWithEmail({
     required String email,
@@ -75,7 +76,7 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
-    
+
     final appUser = AppUser(
       uid: cred.user!.uid,
       name: name.trim(),
@@ -87,8 +88,11 @@ class AuthService {
       staffId: staffId.trim(),
       createdAt: DateTime.now(),
     );
-    
-    await _db.collection('users').doc(cred.user!.uid).set(appUser.toFirestore());
+
+    await _db
+        .collection('users')
+        .doc(cred.user!.uid)
+        .set(appUser.toFirestore());
   }
 
   /// Helper to fetch Firestore profile and validate status.
@@ -97,7 +101,7 @@ class AuthService {
 
     if (!doc.exists) {
       // Throw special exception to trigger Registration Screen
-      throw Exception('new_user'); 
+      throw Exception('new_user');
     }
 
     final appUser = AppUser.fromFirestore(doc);
@@ -127,6 +131,24 @@ class AuthService {
   Future<void> logout() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+  }
+
+  /// Change the current user's password.
+  /// Re-authenticates with old password, then updates to new password.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      throw Exception('No user signed in.');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.updatePassword(newPassword);
   }
 
   // ─────────── REGISTRATION (FIRESTORE) ───────────
@@ -168,9 +190,9 @@ class AuthService {
           final users = snap.docs.map((d) => AppUser.fromFirestore(d)).toList();
           // Sort by createdAt descending (newest first)
           users.sort((a, b) {
-             final t1 = b.createdAt ?? DateTime(2000);
-             final t2 = a.createdAt ?? DateTime(2000);
-             return t1.compareTo(t2);
+            final t1 = b.createdAt ?? DateTime(2000);
+            final t2 = a.createdAt ?? DateTime(2000);
+            return t1.compareTo(t2);
           });
           return users;
         });
@@ -196,17 +218,35 @@ class AuthService {
     required String roomNo,
     required String messPlan,
     required String tempPassword,
+    String? department,
+    String? digitalId,
   }) async {
+    // Validate email before attempting Firebase Auth creation
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isEmpty || !trimmedEmail.contains('@')) {
+      throw Exception('Invalid email: $trimmedEmail');
+    }
+
+    // Check if user already exists in Firestore by email
+    final existing = await _db
+        .collection('users')
+        .where('email', isEqualTo: trimmedEmail)
+        .limit(1)
+        .get();
+    if (existing.docs.isNotEmpty) {
+      throw Exception('A student with email $trimmedEmail already exists.');
+    }
+
     // This creates an Auth account, which logs the current admin out momentarily
     // AppState handles re-login using preserved credentials if needed.
     final cred = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+      email: trimmedEmail,
       password: tempPassword,
     );
-    
+
     await _db.collection('users').doc(cred.user!.uid).set({
       'name': name.trim(),
-      'email': email.trim(),
+      'email': trimmedEmail,
       'phone': phone.trim(),
       'role': 'student',
       'approved': true,
@@ -214,6 +254,79 @@ class AuthService {
       'rollNo': rollNo.trim(),
       'roomNo': roomNo.trim(),
       'messPlan': messPlan.trim(),
+      if (department != null && department.trim().isNotEmpty)
+        'department': department.trim(),
+      if (digitalId != null && digitalId.trim().isNotEmpty)
+        'digitalId': digitalId.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ─────────── ADMIN: STUDENT MANAGEMENT ───────────
+
+  /// Stream all students from Firestore, ordered by name.
+  Stream<List<AppUser>> get allStudents {
+    return _db
+        .collection('users')
+        .where('role', isEqualTo: 'student')
+        .snapshots()
+        .map((snap) {
+          final users = snap.docs.map((d) => AppUser.fromFirestore(d)).toList();
+          users.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
+          return users;
+        });
+  }
+
+  /// Update editable student fields (phone, messPlan/messType, roomNo).
+  Future<void> updateStudentDetails({
+    required String uid,
+    String? phone,
+    String? messPlan,
+    String? roomNo,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (phone != null) updates['phone'] = phone.trim();
+    if (messPlan != null) updates['messPlan'] = messPlan.trim();
+    if (roomNo != null) updates['roomNo'] = roomNo.trim();
+    if (updates.isEmpty) return;
+    await _db.collection('users').doc(uid).update(updates);
+  }
+
+  /// Fast student creation — skips duplicate check for bulk import speed.
+  /// Caller is responsible for handling errors per-student.
+  Future<void> createStudentFast({
+    required String name,
+    required String email,
+    required String tempPassword,
+    String? department,
+    String? digitalId,
+  }) async {
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isEmpty || !trimmedEmail.contains('@')) {
+      throw Exception('Invalid email: $trimmedEmail');
+    }
+
+    final cred = await _auth.createUserWithEmailAndPassword(
+      email: trimmedEmail,
+      password: tempPassword,
+    );
+
+    await _db.collection('users').doc(cred.user!.uid).set({
+      'name': name.trim(),
+      'email': trimmedEmail,
+      'phone': '',
+      'role': 'student',
+      'approved': true,
+      'active': true,
+      'rollNo': digitalId?.trim() ?? '',
+      'roomNo': '',
+      'messPlan': '',
+      if (department != null && department.trim().isNotEmpty)
+        'department': department.trim(),
+      if (digitalId != null && digitalId.trim().isNotEmpty)
+        'digitalId': digitalId.trim(),
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

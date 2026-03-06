@@ -1,111 +1,150 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// App constants including colors, text styles, and dimensions.
-/// 
-/// Uses a food-themed color palette with rustic/warm tones for
-/// psychological impact - creates a cozy, appetizing feel.
+///
+/// Uses a refined food-themed color palette with warm tones for
+/// psychological impact — creates a cozy, appetizing feel.
 class AppConstants {
-  // Private constructor to prevent instantiation
   AppConstants._();
 
   // ============== COLORS ==============
-  
-  /// Primary warm terracotta color - appetizing and inviting
+
+  /// Primary warm terracotta color — appetizing and inviting
   static const Color primaryColor = Color(0xFFE07B39);
-  
-  /// Secondary olive green - natural, fresh feel
+
+  /// Darker primary for hover/pressed states
+  static const Color primaryDark = Color(0xFFBC5D2E);
+
+  /// Lighter primary for subtle backgrounds
+  static const Color primaryLight = Color(0xFFFFF3EB);
+
+  /// Secondary olive green — natural, fresh feel
   static const Color secondaryColor = Color(0xFF6B7B3C);
-  
-  /// Warm beige background - cozy and rustic
-  static const Color backgroundColor = Color(0xFFF5F0E8);
-  
-  /// Dark brown for text - earthy and readable
-  static const Color textPrimary = Color(0xFF3D2314);
-  
+
+  /// Warm beige background — cozy and rustic
+  static const Color backgroundColor = Color(0xFFF7F3EE);
+
+  /// Dark brown for text — earthy and readable
+  static const Color textPrimary = Color(0xFF2D1810);
+
   /// Medium brown for secondary text
-  static const Color textSecondary = Color(0xFF795548);
-  
+  static const Color textSecondary = Color(0xFF6B5B50);
+
+  /// Muted text for hints/placeholders
+  static const Color textMuted = Color(0xFF9E8E82);
+
   /// Light beige for cards
-  static const Color cardColor = Color(0xFFFFFBF5);
-  
+  static const Color cardColor = Color(0xFFFFFCF9);
+
   /// Error/complaint red
   static const Color errorColor = Color(0xFFD32F2F);
-  
+
   /// Success green
-  static const Color successColor = Color(0xFF4CAF50);
-  
+  static const Color successColor = Color(0xFF2E7D32);
+
+  /// Warning amber
+  static const Color warningColor = Color(0xFFF9A825);
+
+  /// Info blue
+  static const Color infoColor = Color(0xFF1565C0);
+
   /// Gradient colors for login screen
-  static const Color gradientStart = Color(0xFFE07B39); // Warm terracotta
-  static const Color gradientMiddle = Color(0xFFBC5D2E); // Deep orange
-  static const Color gradientEnd = Color(0xFF6B7B3C);    // Olive green
+  static const Color gradientStart = Color(0xFFE07B39);
+  static const Color gradientMiddle = Color(0xFFBC5D2E);
+  static const Color gradientEnd = Color(0xFF6B7B3C);
 
   /// Pool type colors
-  static const Color snackPoolColor = Color(0xFFFFB74D);   // Warm yellow-orange
-  static const Color fruitPoolColor = Color(0xFF81C784);   // Fresh green
-  static const Color proteinPoolColor = Color(0xFFFFCC80); // Cream/egg color
+  static const Color snackPoolColor = Color(0xFFFFB74D);
+  static const Color fruitPoolColor = Color(0xFF81C784);
+  static const Color proteinPoolColor = Color(0xFFFFCC80);
 
   // ============== GRADIENTS ==============
-  
-  /// Main app gradient - food-themed warm colors
+
+  /// Main app gradient
   static const LinearGradient appGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [gradientStart, gradientMiddle, gradientEnd],
   );
 
+  /// Premium header gradient
+  static const LinearGradient headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFE07B39), Color(0xFFD4692F), Color(0xFFC05525)],
+  );
+
   /// Card gradient for subtle depth
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFFBF5), Color(0xFFF5EFE6)],
+    colors: [Color(0xFFFFFCF9), Color(0xFFF7F0E8)],
+  );
+
+  /// Surface gradient for elevated surfaces
+  static const LinearGradient surfaceGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFF7F3EE), Color(0xFFEFE8DF)],
   );
 
   // ============== TEXT STYLES ==============
-  
-  static const TextStyle headingLarge = TextStyle(
+
+  static TextStyle headingLarge = GoogleFonts.poppins(
     fontSize: 28,
     fontWeight: FontWeight.bold,
     color: textPrimary,
+    letterSpacing: -0.5,
   );
 
-  static const TextStyle headingMedium = TextStyle(
+  static TextStyle headingMedium = GoogleFonts.poppins(
     fontSize: 22,
     fontWeight: FontWeight.w600,
     color: textPrimary,
+    letterSpacing: -0.3,
   );
 
-  static const TextStyle headingSmall = TextStyle(
+  static TextStyle headingSmall = GoogleFonts.poppins(
     fontSize: 18,
     fontWeight: FontWeight.w600,
     color: textPrimary,
   );
 
-  static const TextStyle bodyLarge = TextStyle(
+  static TextStyle bodyLarge = GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.normal,
     color: textPrimary,
   );
 
-  static const TextStyle bodyMedium = TextStyle(
+  static TextStyle bodyMedium = GoogleFonts.poppins(
     fontSize: 14,
     fontWeight: FontWeight.normal,
     color: textSecondary,
   );
 
-  static const TextStyle bodySmall = TextStyle(
+  static TextStyle bodySmall = GoogleFonts.poppins(
     fontSize: 12,
     fontWeight: FontWeight.normal,
     color: textSecondary,
   );
 
-  static const TextStyle buttonText = TextStyle(
+  static TextStyle buttonText = GoogleFonts.poppins(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: Colors.white,
+    letterSpacing: 0.3,
+  );
+
+  static TextStyle caption = GoogleFonts.poppins(
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    color: textMuted,
+    letterSpacing: 0.2,
   );
 
   // ============== DIMENSIONS ==============
-  
+
   static const double paddingSmall = 8.0;
   static const double paddingMedium = 16.0;
   static const double paddingLarge = 24.0;
@@ -121,22 +160,46 @@ class AppConstants {
   static const double iconSizeLarge = 32.0;
 
   // ============== SHADOWS ==============
-  
-  static List<BoxShadow> cardShadow = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.08),
-      blurRadius: 10,
-      offset: const Offset(0, 4),
-    ),
-  ];
 
-  static List<BoxShadow> elevatedShadow = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.12),
-      blurRadius: 16,
-      offset: const Offset(0, 6),
-    ),
-  ];
+  static List<BoxShadow> get cardShadow => [
+        BoxShadow(
+          color: const Color(0xFF2D1810).withOpacity(0.06),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+          spreadRadius: 0,
+        ),
+      ];
+
+  static List<BoxShadow> get elevatedShadow => [
+        BoxShadow(
+          color: const Color(0xFF2D1810).withOpacity(0.08),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+          spreadRadius: -2,
+        ),
+        BoxShadow(
+          color: const Color(0xFFE07B39).withOpacity(0.08),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+          spreadRadius: -4,
+        ),
+      ];
+
+  static List<BoxShadow> get softShadow => [
+        BoxShadow(
+          color: const Color(0xFF2D1810).withOpacity(0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+          spreadRadius: 0,
+        ),
+      ];
+
+  // ============== ANIMATIONS ==============
+
+  static const Duration animFast = Duration(milliseconds: 150);
+  static const Duration animMedium = Duration(milliseconds: 250);
+  static const Duration animSlow = Duration(milliseconds: 400);
+  static const Curve animCurve = Curves.easeOutCubic;
 }
 
 /// App theme data built from constants
@@ -154,29 +217,65 @@ class AppTheme {
         error: AppConstants.errorColor,
       ),
       scaffoldBackgroundColor: AppConstants.backgroundColor,
-      appBarTheme: const AppBarTheme(
+      textTheme: GoogleFonts.poppinsTextTheme(),
+      appBarTheme: AppBarTheme(
         backgroundColor: AppConstants.primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(16),
+          ),
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppConstants.cardColor,
-        elevation: 2,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+          borderRadius:
+              BorderRadius.circular(AppConstants.borderRadiusMedium),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppConstants.primaryColor,
           foregroundColor: Colors.white,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: AppConstants.paddingLarge,
             vertical: AppConstants.paddingMedium,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+            borderRadius:
+                BorderRadius.circular(AppConstants.borderRadiusMedium),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppConstants.primaryColor,
+          side: const BorderSide(color: AppConstants.primaryColor),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.paddingLarge,
+            vertical: AppConstants.paddingMedium,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(AppConstants.borderRadiusMedium),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -184,33 +283,92 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
+          borderRadius:
+              BorderRadius.circular(AppConstants.borderRadiusMedium),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius:
+              BorderRadius.circular(AppConstants.borderRadiusMedium),
+          borderSide: BorderSide(color: Colors.grey.shade200),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-          borderSide: const BorderSide(color: AppConstants.primaryColor, width: 2),
+          borderRadius:
+              BorderRadius.circular(AppConstants.borderRadiusMedium),
+          borderSide:
+              const BorderSide(color: AppConstants.primaryColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(AppConstants.borderRadiusMedium),
+          borderSide:
+              const BorderSide(color: AppConstants.errorColor, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppConstants.paddingMedium,
-          vertical: AppConstants.paddingMedium,
+          vertical: 14,
+        ),
+        hintStyle: GoogleFonts.poppins(
+          color: AppConstants.textMuted,
+          fontSize: 14,
+        ),
+        labelStyle: GoogleFonts.poppins(
+          color: AppConstants.textSecondary,
+          fontSize: 14,
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppConstants.primaryColor,
-        unselectedItemColor: AppConstants.textSecondary,
+        unselectedItemColor: AppConstants.textMuted,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
+        elevation: 0,
+        selectedLabelStyle: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: GoogleFonts.poppins(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
       ),
-      tabBarTheme: const TabBarThemeData(
+      tabBarTheme: TabBarThemeData(
         labelColor: AppConstants.primaryColor,
         unselectedLabelColor: AppConstants.textSecondary,
         indicatorColor: AppConstants.primaryColor,
+        labelStyle: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: AppConstants.textPrimary,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        contentTextStyle: GoogleFonts.poppins(
+          fontSize: 14,
+          color: Colors.white,
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFEDE6DD),
+        thickness: 1,
+        space: 1,
       ),
     );
   }

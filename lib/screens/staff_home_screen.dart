@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
 import 'login_screen.dart';
 import 'overall_menu_screen.dart';
 import 'staff_today_menu_screen.dart';
+import 'staff_student_management_screen.dart';
 
-/// Staff home screen — simple landing page for authenticated staff users.
+/// Staff home screen — landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
   const StaffHomeScreen({super.key});
 
@@ -16,20 +18,65 @@ class StaffHomeScreen extends StatelessWidget {
     final user = appState.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Text('👨‍🍳 ', style: TextStyle(fontSize: 24)),
-            Text('Staff Dashboard'),
-          ],
-        ),
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(context, appState),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: AppConstants.headerGradient,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x30E07B39),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Center(
+                      child: Text('👨‍🍳', style: TextStyle(fontSize: 20)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Staff Dashboard',
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      onPressed: () => _showLogoutDialog(context, appState),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppConstants.paddingLarge),
@@ -39,59 +86,80 @@ class StaffHomeScreen extends StatelessWidget {
             // Welcome header
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: AppConstants.appGradient,
-                borderRadius:
-                    BorderRadius.circular(AppConstants.borderRadiusLarge),
-                boxShadow: AppConstants.elevatedShadow,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFE07B39), Color(0xFFD4692F)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFE07B39).withOpacity(0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Welcome back,',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 14,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     user?.name ?? 'Staff',
-                    style: const TextStyle(
+                    style: GoogleFonts.poppins(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    user?.email ?? '',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 13,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      user?.email ?? '',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
 
             // Quick actions
             Text('Quick Actions', style: AppConstants.headingSmall),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             _buildActionCard(
-              icon: Icons.restaurant_menu,
+              icon: Icons.restaurant_menu_rounded,
               title: 'View Today\'s Menu',
               subtitle: 'Check the mess menu for today',
               color: AppConstants.primaryColor,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const StaffTodayMenuScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const StaffTodayMenuScreen(),
+                  ),
                 );
               },
             ),
@@ -100,7 +168,7 @@ class StaffHomeScreen extends StatelessWidget {
               icon: Icons.calendar_month_outlined,
               title: 'View Overall Menu',
               subtitle: 'Full weekly schedule (Mon-Sun)',
-              color: Colors.orange,
+              color: const Color(0xFFE8A34E),
               onTap: () {
                 Navigator.push(
                   context,
@@ -123,6 +191,21 @@ class StaffHomeScreen extends StatelessWidget {
                 );
               },
             ),
+            const SizedBox(height: 10),
+            _buildActionCard(
+              icon: Icons.person_add_alt_1_rounded,
+              title: 'Add Students',
+              subtitle: 'Add students or bulk import from file',
+              color: AppConstants.infoColor,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StaffStudentManagementScreen(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -139,24 +222,54 @@ class StaffHomeScreen extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppConstants.cardColor,
-        borderRadius: BorderRadius.circular(AppConstants.borderRadiusMedium),
-        boxShadow: AppConstants.cardShadow,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: AppConstants.softShadow,
       ),
-      child: ListTile(
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius:
-                BorderRadius.circular(AppConstants.borderRadiusSmall),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppConstants.bodyLarge.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: AppConstants.bodySmall),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppConstants.textMuted,
+                  size: 20,
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: color),
         ),
-        title: Text(title, style: AppConstants.bodyLarge),
-        subtitle: Text(subtitle, style: AppConstants.bodySmall),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
       ),
     );
   }
@@ -165,12 +278,25 @@ class StaffHomeScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            color: AppConstants.textSecondary,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(color: AppConstants.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -184,8 +310,14 @@ class StaffHomeScreen extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.errorColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Logout'),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
