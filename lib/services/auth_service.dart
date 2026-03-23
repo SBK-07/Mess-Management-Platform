@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart'; // Add this import
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 
 /// Authentication service backed by Firebase Auth and Cloud Firestore.
@@ -15,6 +16,9 @@ class AuthService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
+  // Development-only bootstrap account to make local testing reliable.
+  static const String _devAdminEmail = 'admin@mess.com';
+
   // ─────────── LOGIN / SIGN UP ───────────
 
   /// Sign in with email & password.
@@ -24,10 +28,25 @@ class AuthService {
   /// - 'new_user': Authenticated but no Firestore profile (needs registration).
   /// - 'pending': Profile exists but not approved (needs wait).
   Future<AppUser> login(String email, String password) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
+    final normalizedEmail = email.trim().toLowerCase();
+    UserCredential cred;
+
+    try {
+      cred = await _auth.signInWithEmailAndPassword(
+        email: normalizedEmail,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (_canBootstrapDevAdmin(normalizedEmail, e)) {
+        cred = await _bootstrapDevAdmin(
+          email: normalizedEmail,
+          password: password,
+        );
+      } else {
+        throw Exception(_mapAuthError(e));
+      }
+    }
+
     return _fetchAndValidateUser(cred.user!);
   }
 
@@ -97,9 +116,45 @@ class AuthService {
 
   /// Helper to fetch Firestore profile and validate status.
   Future<AppUser> _fetchAndValidateUser(User firebaseUser) async {
-    final doc = await _db.collection('users').doc(firebaseUser.uid).get();
+    DocumentSnapshot doc;
+    try {
+      doc = await _db.collection('users').doc(firebaseUser.uid).get();
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        throw Exception(
+          'Firestore denied access to your user profile. Update Firestore rules to allow signed-in users to read users/{uid}.',
+        );
+      }
+      throw Exception(e.message ?? 'Failed to load user profile.');
+    }
 
     if (!doc.exists) {
+      if (kDebugMode &&
+          firebaseUser.email?.toLowerCase().trim() == _devAdminEmail) {
+        final adminProfile = {
+          'name': 'Admin',
+          'email': _devAdminEmail,
+          'phone': '',
+          'role': 'admin',
+          'approved': true,
+          'active': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await _db
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .set(adminProfile, SetOptions(merge: true));
+
+        return AppUser(
+          uid: firebaseUser.uid,
+          name: 'Admin',
+          email: _devAdminEmail,
+          role: 'admin',
+          approved: true,
+          active: true,
+        );
+      }
+
       // Throw special exception to trigger Registration Screen
       throw Exception('new_user');
     }
@@ -125,6 +180,67 @@ class AuthService {
     }
 
     throw Exception('Unknown role.');
+  }
+
+  bool _canBootstrapDevAdmin(String email, FirebaseAuthException error) {
+    if (!kDebugMode) return false;
+    if (email != _devAdminEmail) return false;
+    return error.code == 'invalid-credential' ||
+        error.code == 'user-not-found' ||
+        error.code == 'invalid-email';
+  }
+
+  Future<UserCredential> _bootstrapDevAdmin({
+    required String email,
+    required String password,
+  }) async {
+    UserCredential cred;
+    try {
+      cred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        cred = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        throw Exception(_mapAuthError(e));
+      }
+    }
+
+    await _db.collection('users').doc(cred.user!.uid).set({
+      'name': 'Admin',
+      'email': email,
+      'phone': '',
+      'role': 'admin',
+      'approved': true,
+      'active': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return cred;
+  }
+
+  String _mapAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-credential':
+      case 'wrong-password':
+      case 'user-not-found':
+        return 'Invalid email or password.';
+      case 'invalid-email':
+        return 'Email format is invalid.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      case 'network-request-failed':
+        return 'Network error. Check your internet connection.';
+      default:
+        return e.message ?? 'Login failed.';
+    }
   }
 
   /// Sign out.
