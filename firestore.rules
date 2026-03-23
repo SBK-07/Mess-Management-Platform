@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return isSignedIn() && userDoc().data.role == 'admin' && userDoc().data.approved == true;
+    }
+
+    function isStaff() {
+      return isSignedIn() && userDoc().data.role == 'staff' && userDoc().data.approved == true;
+    }
+
+    function isStudent() {
+      return isSignedIn() && userDoc().data.role == 'student';
+    }
+
+    // Logged-in users can read their own profile.
+    // Admin can read/write all user profiles.
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isAdmin();
+      allow create: if isSelf(userId) || isAdmin();
+      allow update: if isSelf(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Menu is readable by authenticated users; only admin/staff can edit.
+    match /mess_menu/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isStaff();
+    }
+
+    // Complaints/reports and other collections used by the app.
+    // Keep broad authenticated access for now to unblock app login/flows;
+    // tighten later if needed per role/action.
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

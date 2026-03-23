@@ -1,1 +1,26 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"mess-management-platform","appId":"1:489079520791:android:7e818f198b342d9a81e652","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"mess-management-platform","configurations":{"android":"1:489079520791:android:7e818f198b342d9a81e652","web":"1:489079520791:web:a78c42c9a1161a6c81e652"}}}}}}
+{
+	"flutter": {
+		"platforms": {
+			"android": {
+				"default": {
+					"projectId": "mess-management-platform",
+					"appId": "1:489079520791:android:7e818f198b342d9a81e652",
+					"fileOutput": "android/app/google-services.json"
+				}
+			},
+			"dart": {
+				"lib/firebase_options.dart": {
+					"projectId": "mess-management-platform",
+					"configurations": {
+						"android": "1:489079520791:android:7e818f198b342d9a81e652",
+						"web": "1:489079520791:web:a78c42c9a1161a6c81e652"
+					}
+				}
+			}
+		}
+	},
+	"firestore": {
+		"rules": "firestore.rules",
+		"indexes": "firestore.indexes.json"
+	}
+}

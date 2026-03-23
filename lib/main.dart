@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -18,12 +20,30 @@ import 'utils/constants.dart'; // AppTheme
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Temporary seed call as requested
-  await MenuUploader.uploadMenu();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e, st) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrintStack(stackTrace: st);
+  }
 
   runApp(const MessManagementApp());
+
+  // Do not block first render on data seeding. If this fails, login screen still loads.
+  unawaited(_seedMenuSafely());
+}
+
+Future<void> _seedMenuSafely() async {
+  if (Firebase.apps.isEmpty) return;
+
+  try {
+    await MenuUploader.uploadMenu();
+  } catch (e, st) {
+    debugPrint('Menu seed skipped: $e');
+    debugPrintStack(stackTrace: st);
+  }
 }
 
 class MessManagementApp extends StatelessWidget {
