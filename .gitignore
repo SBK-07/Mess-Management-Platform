@@ -56,3 +56,4 @@ lib/config/firebase_config.dart
 # Firebase/Google Configuration
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+face_attendance_backend/node_modules
