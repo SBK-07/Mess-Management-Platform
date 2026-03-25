@@ -48,6 +48,7 @@ dependencies:
   syncfusion_flutter_pdf: ^27.2.5
   archive: ^3.6.1
   xml: ^6.6.1
+  fl_chart: ^0.69.0
 
 
 dev_dependencies:
