@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../services/analytics_service.dart';
@@ -19,18 +22,62 @@ class AnalyticsDashboardScreen extends StatefulWidget {
 
 class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   int _selectedDays = 30;
+  DateTimeRange? _selectedDateRange;
+  String? _selectedMealType;
+  String? _selectedIssueType;
   late Future<AnalyticsSnapshot> _future;
+
+  static const List<String> _mealTypes = <String>[
+    'breakfast',
+    'lunch',
+    'snacks',
+    'dinner',
+  ];
+
+  static const List<String> _issueTypes = <String>[
+    'taste',
+    'hygiene',
+    'temperature',
+    'portionSize',
+    'quality',
+    'other',
+    'quantity',
+    'freshness',
+    'service',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _future = AnalyticsService.instance.fetchSnapshot(days: _selectedDays);
+    final now = DateTime.now();
+    _selectedDateRange = DateTimeRange(
+      start: DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: _selectedDays - 1)),
+      end: DateTime(now.year, now.month, now.day),
+    );
+    _reload();
   }
 
-  void _reload(int days) {
+  AnalyticsFilter get _activeFilter {
+    final now = DateTime.now();
+    final fallback = DateTimeRange(
+      start: DateTime(now.year, now.month, now.day)
+          .subtract(Duration(days: _selectedDays - 1)),
+      end: DateTime(now.year, now.month, now.day),
+    );
+    final range = _selectedDateRange ?? fallback;
+
+    return AnalyticsFilter(
+      fromDate: range.start,
+      toDate: range.end,
+      mealType: _selectedMealType,
+      issueType: _selectedIssueType,
+    );
+  }
+
+  void _reload() {
     setState(() {
-      _selectedDays = days;
-      _future = AnalyticsService.instance.fetchSnapshot(days: _selectedDays);
+      _future = AnalyticsService.instance.fetchSnapshot(filter: _activeFilter);
     });
   }
 
@@ -72,11 +119,13 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             }
 
             return RefreshIndicator(
-              onRefresh: () async => _reload(_selectedDays),
+              onRefresh: () async => _reload(),
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildRangeSelector(),
+                  const SizedBox(height: 16),
+                  _buildFiltersCard(),
                   const SizedBox(height: 16),
                   _buildKpiGrid(data),
                   const SizedBox(height: 18),
@@ -85,6 +134,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                   _buildTrendCard(data),
                   const SizedBox(height: 18),
                   _buildIssuesCard(data),
+                  if (!widget.isAdminView) ...[
+                    const SizedBox(height: 18),
+                    _buildStaffOperationsPanel(data),
+                  ],
                 ],
               ),
             );
@@ -104,11 +157,162 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         return ChoiceChip(
           label: Text('$days days'),
           selected: isSelected,
-          onSelected: (_) => _reload(days),
+          onSelected: (_) {
+            final now = DateTime.now();
+            _selectedDays = days;
+            _selectedDateRange = DateTimeRange(
+              start: DateTime(now.year, now.month, now.day)
+                  .subtract(Duration(days: days - 1)),
+              end: DateTime(now.year, now.month, now.day),
+            );
+            _reload();
+          },
           selectedColor: AppConstants.primaryColor.withOpacity(0.2),
         );
       }).toList(),
     );
+  }
+
+  Widget _buildFiltersCard() {
+    final range = _selectedDateRange;
+    final rangeLabel = range == null
+        ? 'Choose Date Range'
+        : '${DateFormat('dd MMM yyyy').format(range.start)} - ${DateFormat('dd MMM yyyy').format(range.end)}';
+
+    return _sectionCard(
+      title: 'Filters & Export',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.date_range_outlined),
+                  label: Text(rangeLabel),
+                  onPressed: _pickDateRange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String?>(
+                  value: _selectedMealType,
+                  decoration: const InputDecoration(
+                    labelText: 'Meal Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All Meals'),
+                    ),
+                    ..._mealTypes.map(
+                      (meal) => DropdownMenuItem<String?>(
+                        value: meal,
+                        child: Text(_titleCase(meal)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedMealType = value;
+                    });
+                    _reload();
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<String?>(
+                  value: _selectedIssueType,
+                  decoration: const InputDecoration(
+                    labelText: 'Issue Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('All Issues'),
+                    ),
+                    ..._issueTypes.map(
+                      (issue) => DropdownMenuItem<String?>(
+                        value: issue,
+                        child: Text(_titleCase(issue)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedIssueType = value;
+                    });
+                    _reload();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: _exportPayload,
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Copy Export Payload'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final current = _selectedDateRange;
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: current,
+    );
+
+    if (picked == null) {
+      return;
+    }
+
+    final days = picked.end
+            .difference(DateTime(picked.start.year, picked.start.month, picked.start.day))
+            .inDays +
+        1;
+    setState(() {
+      _selectedDateRange = picked;
+      _selectedDays = days;
+    });
+    _reload();
+  }
+
+  Future<void> _exportPayload() async {
+    try {
+      final snapshot = await AnalyticsService.instance.fetchSnapshot(filter: _activeFilter);
+      final prettyPayload = const JsonEncoder.withIndent('  ').convert(snapshot.reportPayload);
+      await Clipboard.setData(ClipboardData(text: prettyPayload));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Export payload copied to clipboard.')),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Export failed: $e')),
+      );
+    }
   }
 
   Widget _buildKpiGrid(AnalyticsSnapshot data) {
@@ -297,6 +501,101 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
             );
           }).toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStaffOperationsPanel(AnalyticsSnapshot data) {
+    final ops = data.staffOps;
+    final lowRatingMeals = ops.lowRatingMeals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return _sectionCard(
+      title: 'Staff Operations Panel',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _opsPill(
+                label: 'Today Reports',
+                value: '${ops.todayReports}',
+                color: AppConstants.infoColor,
+              ),
+              _opsPill(
+                label: 'Today Low Ratings',
+                value: '${ops.todayLowRatings}',
+                color: AppConstants.errorColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('Low-Rating Meals', style: AppConstants.bodyLarge),
+          const SizedBox(height: 6),
+          if (lowRatingMeals.isEmpty)
+            Text('No low-rating meals in this filter.', style: AppConstants.bodySmall)
+          else
+            ...lowRatingMeals.take(4).map(
+                  (entry) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(_titleCase(entry.key), style: AppConstants.bodyMedium),
+                    trailing: Text('${entry.value}', style: AppConstants.bodyLarge),
+                  ),
+                ),
+          const SizedBox(height: 12),
+          Text('Repeated Issues Detection', style: AppConstants.bodyLarge),
+          const SizedBox(height: 6),
+          if (ops.repeatedIssues.isEmpty)
+            Text('No repeated issue spikes detected.', style: AppConstants.bodySmall)
+          else
+            ...ops.repeatedIssues.take(5).map(
+                  (issue) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: _severityDot(issue.severity),
+                    title: Text(_titleCase(issue.issue), style: AppConstants.bodyMedium),
+                    subtitle: Text('Severity: ${_titleCase(issue.severity)}', style: AppConstants.caption),
+                    trailing: Text('${issue.count}', style: AppConstants.bodyLarge),
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _opsPill({required String label, required String value, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: AppConstants.headingSmall.copyWith(color: color)),
+          Text(label, style: AppConstants.bodySmall),
+        ],
+      ),
+    );
+  }
+
+  Widget _severityDot(String severity) {
+    final color = switch (severity) {
+      'high' => AppConstants.errorColor,
+      'medium' => AppConstants.warningColor,
+      _ => AppConstants.infoColor,
+    };
+
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
       ),
     );
   }
