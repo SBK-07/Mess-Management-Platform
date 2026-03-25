@@ -1,11 +1,13 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../services/analytics_service.dart';
 import '../utils/constants.dart';
+import '../utils/payload_download.dart';
 
 class AnalyticsDashboardScreen extends StatefulWidget {
   final bool isAdminView;
@@ -25,6 +27,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   DateTimeRange? _selectedDateRange;
   String? _selectedMealType;
   String? _selectedIssueType;
+  double _repeatMinThreshold = 3;
+  double _mediumSeverityThreshold = 5;
+  double _highSeverityThreshold = 8;
   late Future<AnalyticsSnapshot> _future;
 
   static const List<String> _mealTypes = <String>[
@@ -258,10 +263,20 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: _exportPayload,
-              icon: const Icon(Icons.download_outlined),
-              label: const Text('Copy Export Payload'),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _downloadPayload,
+                  icon: const Icon(Icons.file_download_outlined),
+                  label: const Text('Download JSON'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _exportPayload,
+                  icon: const Icon(Icons.content_copy_outlined),
+                  label: const Text('Copy JSON'),
+                ),
+              ],
             ),
           ),
         ],
@@ -311,6 +326,43 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Export failed: $e')),
+      );
+    }
+  }
+
+  Future<void> _downloadPayload() async {
+    try {
+      final snapshot = await AnalyticsService.instance.fetchSnapshot(filter: _activeFilter);
+      final prettyPayload = const JsonEncoder.withIndent('  ').convert(snapshot.reportPayload);
+      final ts = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileName = 'analytics_export_$ts.json';
+
+      if (kIsWeb) {
+        downloadJsonPayload(fileName: fileName, jsonContent: prettyPayload);
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Downloaded $fileName')),
+        );
+        return;
+      }
+
+      await Clipboard.setData(ClipboardData(text: prettyPayload));
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Web download is unavailable on this platform. JSON copied instead.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: $e')),
       );
     }
   }
@@ -510,11 +562,68 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     final lowRatingMeals = ops.lowRatingMeals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final repeatedIssues = ops.repeatedIssues
+        .where((issue) => issue.count >= _repeatMinThreshold.toInt())
+        .map(
+          (issue) => RepeatedIssueAlert(
+            issue: issue.issue,
+            count: issue.count,
+            severity: _severityByThreshold(issue.count),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+
     return _sectionCard(
       title: 'Staff Operations Panel',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text('Severity Threshold Settings', style: AppConstants.bodyLarge),
+          const SizedBox(height: 8),
+          _thresholdSlider(
+            label: 'Repeat Alert Minimum',
+            value: _repeatMinThreshold,
+            min: 2,
+            max: 12,
+            onChanged: (v) {
+              setState(() {
+                _repeatMinThreshold = v;
+                if (_mediumSeverityThreshold < _repeatMinThreshold) {
+                  _mediumSeverityThreshold = _repeatMinThreshold;
+                }
+                if (_highSeverityThreshold < _mediumSeverityThreshold + 1) {
+                  _highSeverityThreshold = (_mediumSeverityThreshold + 1).clamp(3, 15);
+                }
+              });
+            },
+          ),
+          _thresholdSlider(
+            label: 'Medium Severity From',
+            value: _mediumSeverityThreshold,
+            min: _repeatMinThreshold,
+            max: 14,
+            onChanged: (v) {
+              setState(() {
+                _mediumSeverityThreshold = v;
+                if (_highSeverityThreshold <= _mediumSeverityThreshold) {
+                  _highSeverityThreshold = (_mediumSeverityThreshold + 1).clamp(3, 15);
+                }
+              });
+            },
+          ),
+          _thresholdSlider(
+            label: 'High Severity From',
+            value: _highSeverityThreshold,
+            min: _mediumSeverityThreshold + 1,
+            max: 15,
+            onChanged: (v) {
+              setState(() {
+                _highSeverityThreshold = v;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -548,10 +657,10 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
           const SizedBox(height: 12),
           Text('Repeated Issues Detection', style: AppConstants.bodyLarge),
           const SizedBox(height: 6),
-          if (ops.repeatedIssues.isEmpty)
+          if (repeatedIssues.isEmpty)
             Text('No repeated issue spikes detected.', style: AppConstants.bodySmall)
           else
-            ...ops.repeatedIssues.take(5).map(
+            ...repeatedIssues.take(5).map(
                   (issue) => ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
@@ -563,6 +672,29 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                 ),
         ],
       ),
+    );
+  }
+
+  Widget _thresholdSlider({
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) {
+    final safeValue = value.clamp(min, max).toDouble();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('$label: ${safeValue.toInt()}', style: AppConstants.bodySmall),
+        Slider(
+          value: safeValue,
+          min: min,
+          max: max,
+          divisions: (max - min).toInt(),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 
@@ -598,6 +730,16 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         shape: BoxShape.circle,
       ),
     );
+  }
+
+  String _severityByThreshold(int count) {
+    if (count >= _highSeverityThreshold.toInt()) {
+      return 'high';
+    }
+    if (count >= _mediumSeverityThreshold.toInt()) {
+      return 'medium';
+    }
+    return 'low';
   }
 
   Widget _buildIssuesCard(AnalyticsSnapshot data) {
