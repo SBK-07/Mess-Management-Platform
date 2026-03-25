@@ -605,7 +605,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final repeatedIssues = ops.repeatedIssues
-+        .where((item) => item.count >= _repeatMinThreshold.toInt())
+        .where((item) => item.count >= _repeatMinThreshold.toInt())
          .map(
            (item) => RepeatedIssueAlert(
              issue: item.issue,
