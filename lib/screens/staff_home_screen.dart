@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'overall_menu_screen.dart';
 import 'staff_today_menu_screen.dart';
 import 'staff_student_management_screen.dart';
+import 'analytics_dashboard_screen.dart';
 
 /// Staff home screen — landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
@@ -179,14 +180,16 @@ class StaffHomeScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _buildActionCard(
               icon: Icons.report_outlined,
-              title: 'View Complaints',
-              subtitle: 'Check student feedback and complaints',
+              title: 'View Analytics & Reports',
+              subtitle: 'Attendance trends, ratings and issue breakdown',
               color: AppConstants.errorColor,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Complaint management coming soon!'),
-                    duration: Duration(seconds: 1),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AnalyticsDashboardScreen(
+                      isAdminView: false,
+                    ),
                   ),
                 );
               },

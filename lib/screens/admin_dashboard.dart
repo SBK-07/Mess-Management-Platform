@@ -13,6 +13,7 @@ import '../models/cancellation.dart';
 import '../services/cancellation_service.dart';
 import 'package:file_picker/file_picker.dart';
 import '../services/bulk_import_service.dart';
+import 'analytics_dashboard_screen.dart';
 
 /// Admin Dashboard Screen.
 /// Includes Overview, Staff Requests, and Student Creation.
@@ -52,6 +53,19 @@ class _AdminDashboardState extends State<AdminDashboard>
         backgroundColor: const Color(0xFFE07B39),
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AnalyticsDashboardScreen(
+                    isAdminView: true,
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Analytics',
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: _handleLogout,

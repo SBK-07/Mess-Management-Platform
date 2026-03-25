@@ -12,6 +12,7 @@ import 'screens/pending_screen.dart'; // Pending Approval
 import 'screens/admin_dashboard.dart';
 import 'screens/staff_home_screen.dart';
 import 'screens/staff_student_management_screen.dart';
+import 'screens/analytics_dashboard_screen.dart';
 import 'screens/home_screen.dart'; // Student Home
 import 'screens/overall_menu_screen.dart';
 import 'screens/mess_cancellation_screen.dart';
@@ -67,6 +68,9 @@ class MessManagementApp extends StatelessWidget {
           '/admin': (context) => const AdminDashboard(),
           '/staff': (context) => const StaffHomeScreen(),
           '/staff/students': (context) => const StaffStudentManagementScreen(),
+          '/analytics': (context) => const AnalyticsDashboardScreen(
+                isAdminView: false,
+              ),
           '/home': (context) => const HomeScreen(),
           '/overall_menu': (context) => const OverallMenuScreen(),
           '/mess_cancellation': (context) => const MessCancellationScreen(),
