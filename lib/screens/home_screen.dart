@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../utils/constants.dart';
-import '../models/menu_item.dart';
 import '../models/notification.dart';
 import '../services/notification_service.dart';
 import 'menu_screen.dart';
@@ -13,6 +12,7 @@ import '../models/meal_type.dart';
 import '../utils/mess_timings.dart';
 import 'my_complaints_screen.dart';
 import '../services/auth_service.dart';
+import 'student_pending_bills_screen.dart';
 
 /// Home screen with bottom navigation for students.
 class HomeScreen extends StatefulWidget {
@@ -348,6 +348,25 @@ class _ProfileTab extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
+
+          _buildProfileOption(
+            icon: Icons.receipt_long_rounded,
+            title: 'View Pending Bills',
+            subtitle: 'See month-wise bills and pay online',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StudentPendingBillsScreen(
+                    studentId: user?.uid ?? '',
+                    studentName: user?.name ?? 'Student',
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 8),
 
           // Section header
           Align(

@@ -8,6 +8,7 @@ import 'overall_menu_screen.dart';
 import 'staff_today_menu_screen.dart';
 import 'staff_student_management_screen.dart';
 import 'analytics_dashboard_screen.dart';
+import 'staff_billing_screen.dart';
 
 /// Staff home screen — landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
@@ -187,10 +188,22 @@ class StaffHomeScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const AnalyticsDashboardScreen(
-                      isAdminView: false,
-                    ),
+                    builder: (_) =>
+                        const AnalyticsDashboardScreen(isAdminView: false),
                   ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildActionCard(
+              icon: Icons.receipt_long_outlined,
+              title: 'View Student Mess Bills',
+              subtitle: 'Month-wise amount and payment status',
+              color: const Color(0xFF4A8F65),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const StaffBillingScreen()),
                 );
               },
             ),
