@@ -11,6 +11,7 @@ import 'screens/register_screen.dart'; // Registration/Profile Completion
 import 'screens/pending_screen.dart'; // Pending Approval
 import 'screens/admin_dashboard.dart';
 import 'screens/staff_home_screen.dart';
+import 'screens/staff_settings_screen.dart';
 import 'screens/staff_student_management_screen.dart';
 import 'screens/analytics_dashboard_screen.dart';
 import 'screens/home_screen.dart'; // Student Home
@@ -67,6 +68,7 @@ class MessManagementApp extends StatelessWidget {
           '/pending': (context) => const PendingScreen(),
           '/admin': (context) => const AdminDashboard(),
           '/staff': (context) => const StaffHomeScreen(),
+          '/staff/settings': (context) => const StaffSettingsScreen(),
           '/staff/students': (context) => const StaffStudentManagementScreen(),
           '/analytics': (context) => const AnalyticsDashboardScreen(
                 isAdminView: false,

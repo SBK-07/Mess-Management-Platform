@@ -392,29 +392,10 @@ class _ProfileTab extends StatelessWidget {
           ),
 
           _buildProfileOption(
-            icon: Icons.lock_outline_rounded,
-            title: 'Change Password',
-            subtitle: 'Update your account password',
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => const _ChangePasswordDialog(),
-              );
-            },
-          ),
-
-          _buildProfileOption(
             icon: Icons.settings_outlined,
             title: 'Settings',
-            subtitle: 'App preferences',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Settings feature coming soon!'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
+            subtitle: 'Security and app preferences',
+            onTap: () => _showSettingsSheet(context),
           ),
 
           _buildProfileOption(
@@ -660,6 +641,59 @@ class _ProfileTab extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showSettingsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.35),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppConstants.primaryColor,
+                  ),
+                  title: Text(
+                    'Change Password',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    'Update password for your next login',
+                    style: GoogleFonts.poppins(fontSize: 12),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showDialog(
+                      context: context,
+                      builder: (_) => const _ChangePasswordDialog(),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import '../widgets/stat_card.dart';
 import '../models/issue_type.dart';
 import '../models/food_report.dart';
 import '../models/meal_type.dart';
+import '../models/menu_item.dart';
 import 'package:intl/intl.dart';
 import '../models/cancellation.dart';
 import '../services/cancellation_service.dart';
@@ -32,6 +34,12 @@ class _AdminDashboardState extends State<AdminDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    unawaited(
+      Provider.of<AppState>(
+        context,
+        listen: false,
+      ).loadDailyMenuFromFirestore(),
+    );
   }
 
   @override
@@ -180,6 +188,86 @@ class _OverviewTab extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Text(
+                'Overall Menu',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/overall_menu'),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: const Text('Open Weekly Menu'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.withOpacity(0.2)),
+            ),
+            child: Builder(
+              builder: (context) {
+                final todaysMenu = appState.firestoreDailyMenu;
+                if (appState.isMenuLoading) {
+                  return const SizedBox(
+                    height: 56,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (todaysMenu.isEmpty) {
+                  return const Text(
+                    'Today\'s Firestore menu is not available yet. Use Open Weekly Menu to verify uploaded data.',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  );
+                }
+
+                final grouped = <MealType, List<MenuItem>>{};
+                for (final meal in MealType.values) {
+                  grouped[meal] = todaysMenu
+                      .where((item) => item.mealType == meal)
+                      .toList();
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: MealType.values.map((meal) {
+                    final items = grouped[meal] ?? const <MenuItem>[];
+                    final itemNames = items.map((e) => e.name).join(', ');
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: '${meal.displayName}: ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFE07B39),
+                              ),
+                            ),
+                            TextSpan(
+                              text: itemNames.isEmpty ? '-' : itemNames,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ),
         ],
       ),

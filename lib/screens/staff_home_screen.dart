@@ -8,6 +8,7 @@ import 'overall_menu_screen.dart';
 import 'staff_today_menu_screen.dart';
 import 'staff_student_management_screen.dart';
 import 'analytics_dashboard_screen.dart';
+import 'staff_settings_screen.dart';
 
 /// Staff home screen — landing page for authenticated staff users.
 class StaffHomeScreen extends StatelessWidget {
@@ -205,6 +206,21 @@ class StaffHomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const StaffStudentManagementScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildActionCard(
+              icon: Icons.settings_outlined,
+              title: 'Settings',
+              subtitle: 'Security and account preferences',
+              color: const Color(0xFF6B7B3C),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StaffSettingsScreen(),
                   ),
                 );
               },

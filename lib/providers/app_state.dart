@@ -308,6 +308,7 @@ class AppState extends ChangeNotifier {
   List<MenuItem> _firestoreMenu = [];
   bool _isMenuLoading = false;
   bool get isMenuLoading => _isMenuLoading;
+  List<MenuItem> get firestoreDailyMenu => List.unmodifiable(_firestoreMenu);
 
   /// Loads the menu for the current day from Firestore
   Future<void> loadDailyMenuFromFirestore() async {

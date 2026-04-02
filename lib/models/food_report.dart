@@ -41,7 +41,18 @@ class FoodReport {
     };
   }
 
+  static DateTime _parseDate(dynamic value, {DateTime? fallback}) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    if (value is String) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed;
+    }
+    return fallback ?? DateTime.now();
+  }
+
   factory FoodReport.fromFirestore(String id, Map<String, dynamic> data) {
+    final parsedTimestamp = _parseDate(data['timestamp']);
     return FoodReport(
       id: id,
       studentId: data['studentId'] ?? '',
@@ -52,13 +63,13 @@ class FoodReport {
         (e) => e.name == data['mealType'],
         orElse: () => MealType.breakfast,
       ),
-      mealDate: (data['mealDate'] as Timestamp).toDate(),
+      mealDate: _parseDate(data['mealDate'], fallback: parsedTimestamp),
       reason: IssueType.values.firstWhere(
         (e) => e.name == data['reason'],
         orElse: () => IssueType.other,
       ),
       comments: data['comments'] ?? '',
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      timestamp: parsedTimestamp,
     );
   }
 }
