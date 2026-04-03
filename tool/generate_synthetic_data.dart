@@ -76,12 +76,18 @@ class _SeederStatusScreenState extends State<SeederStatusScreen> {
       // Keep this safely under the free-tier daily write limit.
       const maxTotalWrites = 18000;
 
+      final now = DateTime.now();
+      final rangeStart = DateTime(now.year, 3, 26);
+      final rangeEnd = DateTime(now.year, 4, 3);
+
       _append('Generating attendance data...');
       final attendanceWrites = await generateAttendanceData(
         studentIds: studentIds,
-        days: 60,
+        startDate: rangeStart,
+        endDate: rangeEnd,
         maxWrites: maxTotalWrites - 3000,
       );
+      _append('Attendance window: ${DateFormat('yyyy-MM-dd').format(rangeStart)} to ${DateFormat('yyyy-MM-dd').format(rangeEnd)}');
       _append('Attendance writes: $attendanceWrites');
 
       _append('Generating feedback data...');
@@ -225,17 +231,36 @@ Future<int> generateAttendanceData({
   required List<String> studentIds,
   int days = 60,
   int maxWrites = 15000,
+  DateTime? startDate,
+  DateTime? endDate,
 }) async {
-  if (studentIds.isEmpty || maxWrites <= 0 || days <= 0) {
+  if (studentIds.isEmpty || maxWrites <= 0) {
     return 0;
   }
 
   final db = FirebaseFirestore.instance;
   final rng = Random();
   final formatter = DateFormat('yyyy-MM-dd');
+  final normalizedStart = startDate == null
+      ? null
+      : DateTime(startDate.year, startDate.month, startDate.day);
+  final normalizedEnd = endDate == null
+      ? null
+      : DateTime(endDate.year, endDate.month, endDate.day);
+
+  if (normalizedStart != null && normalizedEnd != null && normalizedStart.isAfter(normalizedEnd)) {
+    throw ArgumentError('startDate must be on or before endDate');
+  }
+
+  if (normalizedStart == null && normalizedEnd == null && days <= 0) {
+    return 0;
+  }
 
   final profileByStudent = <String, AttendanceProfile>{
     for (final id in studentIds) id: _randomProfile(rng),
+  };
+  final variationByStudent = <String, _StudentVariation>{
+    for (final id in studentIds) id: _buildStudentVariation(rng),
   };
 
   var batch = db.batch();
@@ -252,14 +277,17 @@ Future<int> generateAttendanceData({
     pendingInBatch = 0;
   }
 
-  final today = DateTime.now();
+  final dateSequence = _resolveAttendanceDays(
+    days: days,
+    startDate: normalizedStart,
+    endDate: normalizedEnd,
+  );
 
-  for (var offset = 0; offset < days; offset++) {
+  for (final day in dateSequence) {
     if (totalWrites >= maxWrites) {
       break;
     }
 
-    final day = DateTime(today.year, today.month, today.day).subtract(Duration(days: offset));
     final dateId = formatter.format(day);
 
     final studentsRef = db.collection('attendance').doc(dateId).collection('students');
@@ -276,7 +304,13 @@ Future<int> generateAttendanceData({
       }
 
       final profile = profileByStudent[studentId] ?? AttendanceProfile.irregular;
-      final generated = _generateAttendanceForDay(profile, rng);
+      final variation = variationByStudent[studentId] ?? _buildStudentVariation(rng);
+      final generated = _generateAttendanceForDay(
+        profile,
+        rng,
+        variation,
+        day,
+      );
 
       final hasAnyMeal = generated.breakfast || generated.lunch || generated.dinner;
       if (!hasAnyMeal) {
@@ -389,7 +423,47 @@ AttendanceProfile _randomProfile(Random rng) {
   return AttendanceProfile.irregular;
 }
 
-_AttendanceDay _generateAttendanceForDay(AttendanceProfile profile, Random rng) {
+List<DateTime> _resolveAttendanceDays({
+  required int days,
+  DateTime? startDate,
+  DateTime? endDate,
+}) {
+  if (startDate != null && endDate != null) {
+    final result = <DateTime>[];
+    var day = startDate;
+    while (!day.isAfter(endDate)) {
+      result.add(day);
+      day = day.add(const Duration(days: 1));
+    }
+    return result;
+  }
+
+  final today = DateTime.now();
+  return List<DateTime>.generate(
+    days,
+    (index) => DateTime(today.year, today.month, today.day).subtract(Duration(days: index)),
+  );
+}
+
+_StudentVariation _buildStudentVariation(Random rng) {
+  return _StudentVariation(
+    breakfastBias: _randInRange(-0.28, 0.22, rng),
+    lunchBias: _randInRange(-0.18, 0.28, rng),
+    dinnerBias: _randInRange(-0.24, 0.20, rng),
+    weekendPenalty: _randInRange(0.0, 0.35, rng),
+    dailyVolatility: _randInRange(0.03, 0.28, rng),
+    periodicAmplitude: _randInRange(0.04, 0.22, rng),
+    periodicPhase: _randInRange(0.0, pi * 2, rng),
+    weekdayOffsets: List<double>.generate(7, (_) => _randInRange(-0.14, 0.14, rng)),
+  );
+}
+
+_AttendanceDay _generateAttendanceForDay(
+  AttendanceProfile profile,
+  Random rng,
+  _StudentVariation variation,
+  DateTime day,
+) {
   final base = switch (profile) {
     AttendanceProfile.high => _randInRange(0.80, 1.00, rng),
     AttendanceProfile.medium => _randInRange(0.50, 0.80, rng),
@@ -397,11 +471,28 @@ _AttendanceDay _generateAttendanceForDay(AttendanceProfile profile, Random rng) 
     AttendanceProfile.irregular => _randInRange(0.10, 0.95, rng),
   };
 
-  final pattern = rng.nextInt(100);
+  final dayOfYear = DateTime(day.year, day.month, day.day).difference(DateTime(day.year, 1, 1)).inDays + 1;
+  final weekdayDelta = variation.weekdayOffsets[day.weekday % 7];
+  final periodic = sin((dayOfYear / 3.4) + variation.periodicPhase) * variation.periodicAmplitude;
+  final weekendDrop = (day.weekday == DateTime.saturday || day.weekday == DateTime.sunday)
+      ? variation.weekendPenalty
+      : 0.0;
 
-  bool breakfast = rng.nextDouble() < base;
-  bool lunch = rng.nextDouble() < base;
-  bool dinner = rng.nextDouble() < base;
+  final breakfastP = _clampProbability(
+    base + variation.breakfastBias + weekdayDelta + periodic - weekendDrop + _randInRange(-variation.dailyVolatility, variation.dailyVolatility, rng),
+  );
+  final lunchP = _clampProbability(
+    base + variation.lunchBias + weekdayDelta + periodic - (weekendDrop * 0.6) + _randInRange(-variation.dailyVolatility, variation.dailyVolatility, rng),
+  );
+  final dinnerP = _clampProbability(
+    base + variation.dinnerBias + weekdayDelta + periodic - (weekendDrop * 0.8) + _randInRange(-variation.dailyVolatility, variation.dailyVolatility, rng),
+  );
+
+  bool breakfast = rng.nextDouble() < breakfastP;
+  bool lunch = rng.nextDouble() < lunchP;
+  bool dinner = rng.nextDouble() < dinnerP;
+
+  final pattern = rng.nextInt(100);
 
   if (pattern < 12) {
     breakfast = true;
@@ -409,10 +500,10 @@ _AttendanceDay _generateAttendanceForDay(AttendanceProfile profile, Random rng) 
     dinner = true;
   } else if (pattern < 25) {
     breakfast = false;
-    lunch = rng.nextDouble() < min(1.0, base + 0.20);
-    dinner = rng.nextDouble() < min(1.0, base + 0.10);
+    lunch = rng.nextDouble() < _clampProbability(lunchP + 0.12);
+    dinner = rng.nextDouble() < _clampProbability(dinnerP + 0.08);
   } else if (pattern < 40) {
-    breakfast = rng.nextDouble() < min(1.0, base + 0.15);
+    breakfast = rng.nextDouble() < _clampProbability(breakfastP + 0.10);
     lunch = true;
     dinner = false;
   } else if (pattern < 55) {
@@ -455,6 +546,10 @@ DateTime _randomTimeInRange(DateTime start, DateTime end, Random rng) {
   final diffSeconds = end.difference(start).inSeconds;
   final add = diffSeconds <= 0 ? 0 : rng.nextInt(diffSeconds + 1);
   return start.add(Duration(seconds: add));
+}
+
+double _clampProbability(double value) {
+  return value.clamp(0.0, 1.0).toDouble();
 }
 
 double _randInRange(double minValue, double maxValue, Random rng) {
@@ -531,5 +626,27 @@ class _AttendanceDay {
     required this.breakfast,
     required this.lunch,
     required this.dinner,
+  });
+}
+
+class _StudentVariation {
+  final double breakfastBias;
+  final double lunchBias;
+  final double dinnerBias;
+  final double weekendPenalty;
+  final double dailyVolatility;
+  final double periodicAmplitude;
+  final double periodicPhase;
+  final List<double> weekdayOffsets;
+
+  const _StudentVariation({
+    required this.breakfastBias,
+    required this.lunchBias,
+    required this.dinnerBias,
+    required this.weekendPenalty,
+    required this.dailyVolatility,
+    required this.periodicAmplitude,
+    required this.periodicPhase,
+    required this.weekdayOffsets,
   });
 }
