@@ -6,7 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "backfill:attendance": "node src/scripts/backfill_attendance_till_today.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

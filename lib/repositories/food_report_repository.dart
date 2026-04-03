@@ -14,11 +14,26 @@ class FoodReportRepository {
   }
 
   Stream<List<FoodReport>> getReportsStream() {
-    return _db.collection(collection)
+    return _db
+        .collection(collection)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) => FoodReport.fromFirestore(doc.id, doc.data())).toList();
+          return snapshot.docs
+              .map((doc) => FoodReport.fromFirestore(doc.id, doc.data()))
+              .toList();
         });
+  }
+
+  Future<void> updateReportStatus({
+    required String reportId,
+    required FoodReportStatus status,
+  }) async {
+    await _db.collection(collection).doc(reportId).update({
+      'status': status.name,
+      'resolvedAt': status == FoodReportStatus.resolved
+          ? FieldValue.serverTimestamp()
+          : null,
+    });
   }
 }

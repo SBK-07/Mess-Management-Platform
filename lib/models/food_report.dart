@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'issue_type.dart';
 import 'meal_type.dart';
 
+enum FoodReportStatus { pending, resolved }
+
 class FoodReport {
   final String id;
   final String studentId;
@@ -13,6 +15,8 @@ class FoodReport {
   final IssueType reason;
   final String comments;
   final DateTime timestamp;
+  final FoodReportStatus status;
+  final DateTime? resolvedAt;
 
   FoodReport({
     required this.id,
@@ -25,7 +29,12 @@ class FoodReport {
     required this.reason,
     required this.comments,
     required this.timestamp,
+    this.status = FoodReportStatus.pending,
+    this.resolvedAt,
   });
+
+  bool get isResolved => status == FoodReportStatus.resolved;
+  bool get isPending => status == FoodReportStatus.pending;
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -38,6 +47,8 @@ class FoodReport {
       'reason': reason.name,
       'comments': comments,
       'timestamp': Timestamp.fromDate(timestamp),
+      'status': status.name,
+      'resolvedAt': resolvedAt != null ? Timestamp.fromDate(resolvedAt!) : null,
     };
   }
 
@@ -53,6 +64,10 @@ class FoodReport {
 
   factory FoodReport.fromFirestore(String id, Map<String, dynamic> data) {
     final parsedTimestamp = _parseDate(data['timestamp']);
+    final status = FoodReportStatus.values.firstWhere(
+      (e) => e.name == data['status'],
+      orElse: () => FoodReportStatus.pending,
+    );
     return FoodReport(
       id: id,
       studentId: data['studentId'] ?? '',
@@ -70,6 +85,10 @@ class FoodReport {
       ),
       comments: data['comments'] ?? '',
       timestamp: parsedTimestamp,
+      status: status,
+      resolvedAt: data['resolvedAt'] == null
+          ? null
+          : _parseDate(data['resolvedAt']),
     );
   }
 }

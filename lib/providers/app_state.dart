@@ -1,11 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/user.dart';
-import '../models/menu_item.dart' hide MealType;
-import '../models/complaint.dart' hide IssueType;
-import '../models/replacement.dart' hide PoolType;
+import '../models/menu_item.dart';
+import '../models/complaint.dart';
+import '../models/replacement.dart';
 import '../models/pool_type.dart';
-import '../models/week_day.dart';
 import '../models/meal_type.dart';
 import '../models/issue_type.dart';
 import '../models/food_report.dart';
@@ -29,6 +28,16 @@ class AppState extends ChangeNotifier {
 
   Stream<List<FoodReport>> get foodReportsStream =>
       _foodReportRepository.getReportsStream();
+
+  Future<void> updateFoodReportStatus({
+    required String reportId,
+    required FoodReportStatus status,
+  }) async {
+    await _foodReportRepository.updateReportStatus(
+      reportId: reportId,
+      status: status,
+    );
+  }
 
   Future<void> submitFoodReport({
     required String menuItemId,
@@ -367,6 +376,21 @@ class AppState extends ChangeNotifier {
 
     // Refresh local menu cache
     await loadDailyMenuFromFirestore();
+  }
+
+  Future<void> resolveFoodReportAfterReplacement({
+    required FoodReport report,
+    required String replacementName,
+  }) async {
+    await replaceMenuItemForToday(
+      mealType: report.mealType,
+      oldName: report.menuItemName,
+      newName: replacementName,
+    );
+    await updateFoodReportStatus(
+      reportId: report.id,
+      status: FoodReportStatus.resolved,
+    );
   }
 
   List<MenuItem> get todaysMenu {

@@ -66,9 +66,8 @@ class _AdminDashboardState extends State<AdminDashboard>
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const AnalyticsDashboardScreen(
-                    isAdminView: true,
-                  ),
+                  builder: (_) =>
+                      const AnalyticsDashboardScreen(isAdminView: true),
                 ),
               );
             },
@@ -257,9 +256,7 @@ class _OverviewTab extends StatelessWidget {
                                 color: Color(0xFFE07B39),
                               ),
                             ),
-                            TextSpan(
-                              text: itemNames.isEmpty ? '-' : itemNames,
-                            ),
+                            TextSpan(text: itemNames.isEmpty ? '-' : itemNames),
                           ],
                         ),
                       ),
@@ -2260,6 +2257,9 @@ class _FoodReportsTab extends StatefulWidget {
 class _FoodReportsTabState extends State<_FoodReportsTab> {
   MealType? _filterMeal;
   IssueType? _filterReason;
+  FoodReportStatus? _statusFilter = FoodReportStatus.pending;
+  final Set<String> _resolvingReportIds = <String>{};
+  final Set<String> _optimisticallyResolvedReportIds = <String>{};
 
   Future<void> _showReplaceDialog(
     BuildContext context,
@@ -2314,25 +2314,40 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                     : (selectedReplacementId ?? '');
                 if (newName.isEmpty) return;
                 try {
-                  await appState.replaceMenuItemForToday(
-                    mealType: report.mealType,
-                    oldName: report.menuItemName,
-                    newName: newName,
+                  if (mounted) {
+                    setState(() {
+                      _resolvingReportIds.add(report.id);
+                      _optimisticallyResolvedReportIds.add(report.id);
+                    });
+                  }
+                  await appState.resolveFoodReportAfterReplacement(
+                    report: report,
+                    replacementName: newName,
                   );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Menu updated successfully'),
+                        content: Text('Report marked as resolved'),
                       ),
                     );
                   }
                 } catch (e) {
+                  if (mounted) {
+                    setState(() {
+                      _optimisticallyResolvedReportIds.remove(report.id);
+                    });
+                  }
                   if (context.mounted) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text('Error: $e')));
                   }
                 } finally {
+                  if (mounted) {
+                    setState(() {
+                      _resolvingReportIds.remove(report.id);
+                    });
+                  }
                   Navigator.pop(ctx);
                 }
               },
@@ -2359,15 +2374,44 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
 
         final reports = snapshot.data ?? [];
 
+        final statusAwareReports = reports.map((report) {
+          if (_optimisticallyResolvedReportIds.contains(report.id) &&
+              report.status != FoodReportStatus.resolved) {
+            return FoodReport(
+              id: report.id,
+              studentId: report.studentId,
+              studentName: report.studentName,
+              menuItemId: report.menuItemId,
+              menuItemName: report.menuItemName,
+              mealType: report.mealType,
+              mealDate: report.mealDate,
+              reason: report.reason,
+              comments: report.comments,
+              timestamp: report.timestamp,
+              status: FoodReportStatus.resolved,
+              resolvedAt: report.resolvedAt ?? DateTime.now(),
+            );
+          }
+          return report;
+        }).toList();
+
         // Count frequencies for highlighting
         final frequencyMap = <IssueType, int>{};
-        for (var r in reports) {
+        for (var r in statusAwareReports) {
           frequencyMap[r.reason] = (frequencyMap[r.reason] ?? 0) + 1;
         }
 
-        final filteredReports = reports.where((r) {
+        final pendingCount = statusAwareReports
+            .where((r) => r.status == FoodReportStatus.pending)
+            .length;
+        final resolvedCount = statusAwareReports
+            .where((r) => r.status == FoodReportStatus.resolved)
+            .length;
+
+        final filteredReports = statusAwareReports.where((r) {
           if (_filterMeal != null && r.mealType != _filterMeal) return false;
           if (_filterReason != null && r.reason != _filterReason) return false;
+          if (_statusFilter != null && r.status != _statusFilter) return false;
           return true;
         }).toList();
 
@@ -2427,6 +2471,38 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
               ),
             ),
 
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: Text('All (${statusAwareReports.length})'),
+                      selected: _statusFilter == null,
+                      onSelected: (_) => setState(() => _statusFilter = null),
+                    ),
+                    ChoiceChip(
+                      label: Text('Pending ($pendingCount)'),
+                      selected: _statusFilter == FoodReportStatus.pending,
+                      onSelected: (_) => setState(
+                        () => _statusFilter = FoodReportStatus.pending,
+                      ),
+                    ),
+                    ChoiceChip(
+                      label: Text('Resolved ($resolvedCount)'),
+                      selected: _statusFilter == FoodReportStatus.resolved,
+                      onSelected: (_) => setState(
+                        () => _statusFilter = FoodReportStatus.resolved,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+
             // Stats summary
             if (frequencyMap.isNotEmpty) ...[
               SizedBox(
@@ -2460,21 +2536,34 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                             DataColumn(label: Text('Reason')),
                             DataColumn(label: Text('Comments')),
                             DataColumn(label: Text('Date/Time')),
+                            DataColumn(label: Text('Status')),
                             DataColumn(label: Text('Action')),
                           ],
                           rows: filteredReports.map((report) {
                             final isFrequent =
                                 (frequencyMap[report.reason] ?? 0) > 3;
+                            final isResolved =
+                                report.status == FoodReportStatus.resolved;
+                            final isResolving = _resolvingReportIds.contains(
+                              report.id,
+                            );
                             return DataRow(
                               color: isFrequent
                                   ? WidgetStateProperty.all(
                                       Colors.red.withValues(alpha: 0.05),
+                                    )
+                                  : isResolved
+                                  ? WidgetStateProperty.all(
+                                      Colors.grey.withValues(alpha: 0.12),
                                     )
                                   : null,
                               cells: [
                                 DataCell(
                                   Text(
                                     report.studentId.substring(0, 6) + '...',
+                                    style: TextStyle(
+                                      color: isResolved ? Colors.black54 : null,
+                                    ),
                                   ),
                                 ),
                                 DataCell(
@@ -2482,10 +2571,18 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                                     report.menuItemName.isEmpty
                                         ? '-'
                                         : report.menuItemName,
+                                    style: TextStyle(
+                                      color: isResolved ? Colors.black54 : null,
+                                    ),
                                   ),
                                 ),
                                 DataCell(
-                                  Text('${report.mealType.displayName}'),
+                                  Text(
+                                    '${report.mealType.displayName}',
+                                    style: TextStyle(
+                                      color: isResolved ? Colors.black54 : null,
+                                    ),
+                                  ),
                                 ),
                                 DataCell(
                                   SizedBox(
@@ -2501,6 +2598,8 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                                             style: TextStyle(
                                               color: isFrequent
                                                   ? Colors.red
+                                                  : isResolved
+                                                  ? Colors.black54
                                                   : Colors.black,
                                               fontWeight: isFrequent
                                                   ? FontWeight.bold
@@ -2521,6 +2620,11 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                                           : report.comments,
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 2,
+                                      style: TextStyle(
+                                        color: isResolved
+                                            ? Colors.black54
+                                            : null,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -2529,20 +2633,74 @@ class _FoodReportsTabState extends State<_FoodReportsTab> {
                                     DateFormat(
                                       'MMM d, HH:mm',
                                     ).format(report.timestamp),
+                                    style: TextStyle(
+                                      color: isResolved ? Colors.black54 : null,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isResolved
+                                          ? Colors.green.withValues(alpha: 0.12)
+                                          : Colors.orange.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Text(
+                                      isResolved ? 'Resolved' : 'Pending',
+                                      style: TextStyle(
+                                        color: isResolved
+                                            ? Colors.green.shade700
+                                            : Colors.orange.shade800,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 DataCell(
                                   Row(
                                     children: [
-                                      TextButton.icon(
-                                        icon: const Icon(
-                                          Icons.swap_horiz,
-                                          size: 16,
+                                      if (isResolved)
+                                        const Text(
+                                          'Done',
+                                          style: TextStyle(
+                                            color: Colors.black54,
+                                          ),
+                                        )
+                                      else
+                                        TextButton.icon(
+                                          icon: isResolving
+                                              ? const SizedBox(
+                                                  width: 14,
+                                                  height: 14,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.swap_horiz,
+                                                  size: 16,
+                                                ),
+                                          label: Text(
+                                            isResolving
+                                                ? 'Updating...'
+                                                : 'Replace',
+                                          ),
+                                          onPressed: isResolving
+                                              ? null
+                                              : () => _showReplaceDialog(
+                                                  context,
+                                                  report,
+                                                ),
                                         ),
-                                        label: const Text('Replace'),
-                                        onPressed: () =>
-                                            _showReplaceDialog(context, report),
-                                      ),
                                     ],
                                   ),
                                 ),
