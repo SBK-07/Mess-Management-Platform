@@ -1,8 +1,6 @@
 # Smart Mess Management Platform
 
-<p align="center">
-  <img src="assets/images/food_background.png" alt="Mess Management Platform Banner" width="600"/>
-</p>
+
 
 <p align="center">
   <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white" alt="Flutter"/></a>
