@@ -425,18 +425,18 @@ Mess-Management-Platform/
 
 ## Future Enhancements / Roadmap
 
-| Priority | Enhancement | Description |
-|---|---|---|
-| 🔴 High | Push Notifications | Firebase Cloud Messaging for menu updates, complaint responses, bill reminders |
-| 🔴 High | Tighten Firestore Rules | Replace the broad authenticated catch-all rule with per-collection, per-role rules |
-| 🟡 Medium | Face Embedding Security | Encrypt embeddings at rest; rate-limit the `/face-embeddings` endpoint |
-| 🟡 Medium | QR-Code Meal Tokens | Alternative to face recognition for faster meal-time check-in |
-| 🟡 Medium | Offline Support | Firestore offline persistence for low-connectivity environments |
-| 🟢 Low | Payment Gateway Integration | Razorpay / Stripe for in-app mess bill payments |
-| 🟢 Low | Multi-Mess Support | Multi-tenancy to support multiple hostels/messes per institution |
-| 🟢 Low | Dietary Preferences | Student-configurable dietary flags (vegetarian, vegan, allergens) |
-| 🟢 Low | NLP Complaint Analysis | Sentiment analysis on free-text complaint descriptions |
-| 🟢 Low | CI/CD Pipeline | GitHub Actions for automated Flutter build, lint, and test |
+| Enhancement | Description |
+|---|---|
+| Push Notifications | Firebase Cloud Messaging for menu updates, complaint responses, bill reminders |
+| Tighten Firestore Rules | Replace the broad authenticated catch-all rule with per-collection, per-role rules |
+| Face Embedding Security | Encrypt embeddings at rest; rate-limit the `/face-embeddings` endpoint |
+| QR-Code Meal Tokens | Alternative to face recognition for faster meal-time check-in |
+| Offline Support | Firestore offline persistence for low-connectivity environments |
+| Payment Gateway Integration | Razorpay / Stripe for in-app mess bill payments |
+| Multi-Mess Support | Multi-tenancy to support multiple hostels/messes per institution |
+| Dietary Preferences | Student-configurable dietary flags (vegetarian, vegan, allergens) |
+| NLP Complaint Analysis | Sentiment analysis on free-text complaint descriptions |
+| CI/CD Pipeline | GitHub Actions for automated Flutter build, lint, and test |
 
 ---
 
