@@ -253,7 +253,7 @@ flutter run
 ## Usage
 
 ### Admin Workflow
-1. Log in with an admin account (or use the dev bootstrap: `admin@mess.com`).
+1. Log in with an admin account. A local development bootstrap account can be configured in `lib/services/auth_service.dart` — **do not use or commit real credentials; replace this with a proper admin seeding process before deploying to production**.
 2. Navigate to the **Staff Requests** tab to approve pending staff registrations.
 3. Use the **Students** tab to create accounts individually or upload a CSV for bulk import.
 4. Publish the weekly menu from the **Menu** tab.
@@ -299,9 +299,12 @@ flutter run
 The **Face Attendance REST API** (`face_attendance_backend`) exposes the following endpoints:
 
 ### Base URL
-```
-http://localhost:3000
-```
+
+| Environment | URL |
+|---|---|
+| Local (Node.js) | `http://localhost:3000` |
+| Android Emulator | `http://10.0.2.2:3000` |
+| Production | Configure via the `FACE_BACKEND_URL` environment variable or equivalent app constant |
 
 ### Endpoints
 
@@ -338,6 +341,9 @@ Mark attendance for a student within a valid meal time window.
 ```
 
 **Meal Time Windows (server time):**
+
+> These windows are defined in `face_attendance_backend/src/utils/time_slots.js` and can be adjusted to match institutional requirements.
+
 | Meal | Window |
 |---|---|
 | Breakfast | 07:00 – 08:00 |
